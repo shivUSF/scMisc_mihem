@@ -11,15 +11,15 @@ FPlot(object, par, width = 16, height = ceiling(length(genes)/2))
 
 \item{par}{column name in markers.xlsx}
 
-\item{width}{width of output plot (default 16)}
+\item{width}{width of output plot (default: 16)}
 
-\item{height}{height of output plot (default length of genes divided by two)}
+\item{height}{height of output plot (default: length of genes divided by two)}
 }
 \value{
-save feature plot to folder feauter plot
+save feature plot to folder \code{featureplot}
 }
 \description{
-create and save a nice Seurat feature plot
+create and save a nice Seurat feature plot in folder \code{featureplot}
 }
 \examples{
 FPlot(sc_merge, par = "main", width = 5, height = 5)
