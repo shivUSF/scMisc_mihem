@@ -11,22 +11,6 @@ filterSeurat <- function(x, rna, mt) {
 subset(x, subset = nFeature_RNA > 200 & nFeature_RNA < rna & percent_mt < mt & scDblFinder.class == "singlet")
 }
 
-##############################################################################
-##############################################################################
-
-FPlot <- function(object, par, width = 16, height = ceiling(length(genes)/2)) {
-markers <- readxl::read_excel("./markers.xlsx") %>%
-    as.list(markers) %>%
-    lapply(function(x) x[!is.na(x)])
-object_parse <- deparse(substitute(object))
-genes <- markers[[par]]
-fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = viridis::viridis(100), reduction = "umap", pt.size = .1, order = TRUE, coord.fixed = TRUE) &
-    theme(axis.text = element_blank(),
-          axis.ticks = element_blank(),
-          panel.border = element_rect(color = "black", size = 1, fill = NA))
-ggsave(file.path(project_path, "featureplot", glue::glue("{object_parse}_{par}.png")), width = width, height = height, limitsize = FALSE)
-}
-
 
 ##############################################################################
 ##############################################################################

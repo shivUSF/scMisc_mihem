@@ -1,15 +1,14 @@
 Package: scUtils
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Utils for scRNA-seq
+Version: 0.1
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Michael",
+           family = "Heming",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+           email = "mhem@mailbox.org",
+           comment = c(ORCID = "0000-0002-9568-2790"))
+Description: scUtils are helper function for scRNA-seq analysis
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)

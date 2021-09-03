@@ -1,0 +1,25 @@
+#' @title nice Seurat feature plot
+#' @description create and save a nice Seurat feature plot
+#' @param object Seurat object
+#' @param par column name in markers.xlsx
+#' @param width width of output plot (default 16)
+#' @param height height of output plot (default length of genes divided by two)
+#' @return save feature plot to folder feauter plot
+#' @examples FPlot(sc_merge, par = "main", width = 5, height = 5)
+#' @export
+
+
+FPlot <- function(object, par, width = 16, height = ceiling(length(genes)/2)) {
+markers <- readxl::read_excel("./markers.xlsx") %>%
+    as.list(markers) %>%
+    lapply(function(x) x[!is.na(x)])
+object_parse <- deparse(substitute(object))
+genes <- markers[[par]]
+fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = viridis::viridis(100), reduction = "umap", pt.size = .1, order = TRUE, coord.fixed = TRUE) &
+    theme(axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          panel.border = element_rect(color = "black", size = 1, fill = NA))
+ggsave(file.path(project_path, "featureplot", glue::glue("{object_parse}_{par}.png")), width = width, height = height, limitsize = FALSE)
+}
+
+
