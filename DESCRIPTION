@@ -1,18 +1,18 @@
 Package: scUtils
 Title: Utils for scRNA-seq
-Version: 0.1
+Version: 0.0.9000
 Authors@R: 
     person(given = "Michael",
            family = "Heming",
            role = c("aut", "cre"),
            email = "mhem@mailbox.org",
            comment = c(ORCID = "0000-0002-9568-2790"))
-Description: scUtils are helper function for scRNA-seq analysis
+Description: scUtils are helper functions for scRNA-seq analysis based on Seurat.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
@@ -21,4 +21,8 @@ Imports:
     here,
     readr,
     glue,
-    viridis
+    viridis,
+    ggplot2,
+    homologene,
+    methods,
+    pheatmap
