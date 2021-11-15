@@ -48,7 +48,7 @@ fPlot <- function(object, par, width = 16, height = ceiling(length(genes)/2)) {
 #' @param dot_min minimal dot size
 #' @param width width of output plot (default: 10)
 #' @param height height of output plot (default: 10)
-#' @param ortho boolean; convert mouse to human?
+#' @param ortho convert to orthologues? Allowed values: `none`, `mouse2human` or `human2mouse`
 #' @return save feature plot to folder `featureplot`
 #' @importFrom ggplot2 ggplot scale_size theme xlab ylab element_text ggsave
 #' @examples
@@ -69,11 +69,21 @@ dotPlot <- function(object, par, dot_min, width = 10, height = 10, ortho = FALSE
         as.list(markers) |>
         lapply(function(x) x[!is.na(x)])
     genes <- markers[[par]]
+
     if(is.null(genes)) {
         stop("No genes were found. Make sure that `par` exists in markers.csv")
 }
-    if (ortho) {
-        genes <- homologene::mouse2human(genes, db = homologeneData2)$humanGene
+    if(!(ortho %in% c("none", "mouse2human", "human2mouse"))) {
+        stop("ortho must take values: `none`, `mouse2human` or `human2mouse`")
+    }
+    if (ortho == "mouse2human") {
+        genes <- homologene::mouse2human(genes, db = homologene::homologeneData2)$humanGene
+    }
+    if (ortho == "human2mouse") {
+        genes <- homologene::human2mouse(genes, db = homologene::homologeneData2)$mouseGene
+    }
+    if (ortho == "none") {
+    genes <- genes
     }
     object_parse <- deparse(substitute(object))
     Seurat::DotPlot(object, features = unique(genes), dot.scale = 10, scale.by = "size", dot.min = dot_min) +
@@ -112,7 +122,7 @@ pHeatmap <- function(matrix, scale = "none", height = ceiling(nrow(matrix)/3), w
     dir.create(here::here("heatmap"), showWarnings = FALSE)
     matrix_parse <- deparse(substitute(matrix))
     matrix <- matrix[!rowSums(matrix) == 0,] # filter rows with only zeros
-    break_max <- round(max(abs(c(max(pheatmap:::scale_mat(matrix, scale = scale)), min(pheatmap:::scale_mat(matrix, scale = scale)))))-0.1,1) #use internal function to get scaled matrix and max value for color legend
+    break_max <- round(max(abs(c(max(scale_mat(matrix, scale = scale)), min(scale_mat(matrix, scale = scale)))))-0.1,1) #use internal function to get scaled matrix and max value for color legend
     break_min <- -break_max
     phmap <- pheatmap::pheatmap(matrix,
                                 color = viridis::viridis(100),
