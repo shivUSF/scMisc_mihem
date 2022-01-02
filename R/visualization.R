@@ -1,4 +1,22 @@
 ################################################################################
+# nice theme
+################################################################################
+
+#' @title nice ggplot theme
+#' @description nice theme with square border
+#' @importFrom ggplot2 theme element_blank element_rect
+#' @export
+
+theme_rect <-function() {
+    theme(axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          panel.border = element_rect(color = "black", size = 1, fill = NA),
+          aspect.ratio = 1)
+}
+
+
+
+################################################################################
 # feature plots
 ################################################################################
 
@@ -6,21 +24,24 @@
 #' @description create and save a nice Seurat feature plot in folder `featureplot`
 #' @param object Seurat object
 #' @param par column name in markers.csv
+#' @param filepath path of the file
 #' @param width width of output plot (default: 16)
 #' @param height height of output plot (default: length of genes divided by two)
-#' @return save feature plot to folder `featureplot`
+#' @return save feature plot to folder `/results/featureplot/`
 #' @importFrom ggplot2 theme element_blank element_rect ggsave
-#' @examples \dontrun{fPlot(sc_merge, par = "main", width = 5, height = 5)}
+#' @examples \dontrun{fPlot(sc_merge, par = "main", filepath = file.path("results", "featureplot", glue::glue("fp_")))}
 #' @export
 
-fPlot <- function(object, par, width = 16, height = ceiling(length(genes)/2)) {
+fPlot <- function(object, par, filepath, width = 16, height = ceiling(length(genes)/2)) {
     if(!file.exists("markers.csv")) {
         stop("Please make sure that markers.csv file exists")
     }
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
-    dir.create(here::here("featureplot"), showWarnings = FALSE)
+    if(!dir.exists(file.path("results", "featureplot"))) {
+        stop("Directory `/results/featureplot/` must exist")
+}
     markers <- readr::read_csv(here::here("markers.csv")) |>
     as.list(markers) |>
     lapply(function(x) x[!is.na(x)])
@@ -33,7 +54,7 @@ fPlot <- function(object, par, width = 16, height = ceiling(length(genes)/2)) {
         theme(axis.text = element_blank(),
                        axis.ticks = element_blank(),
                        panel.border = element_rect(color = "black", size = 1, fill = NA))
-    ggsave(here::here("featureplot", glue::glue("fp_{object_parse}_{par}.png")), width = width, height = height, limitsize = FALSE)
+ggsave(filename = file.path("results", "featureplot", glue::glue("fp_{object_parse}_{par}.png")), width = width, height = height, limitsize = FALSE)
 }
 
 
@@ -42,14 +63,14 @@ fPlot <- function(object, par, width = 16, height = ceiling(length(genes)/2)) {
 ################################################################################
 
 #' @title nice Seurat dot plot
-#' @description create and save a nice Seurat dot plot in folder `featureplot`
+#' @description create and save a nice Seurat dot plot
 #' @param object Seurat object
 #' @param par column name in markers.csv
 #' @param dot_min minimal dot size
 #' @param width width of output plot (default: 10)
 #' @param height height of output plot (default: 10)
 #' @param ortho convert to orthologues? Allowed values: `none`, `mouse2human` or `human2mouse`
-#' @return save feature plot to folder `featureplot`
+#' @return save dot plot to folder `results/dotplot/`
 #' @importFrom ggplot2 ggplot scale_size theme xlab ylab element_text ggsave
 #' @examples
 #' \dontrun{
@@ -57,14 +78,16 @@ fPlot <- function(object, par, width = 16, height = ceiling(length(genes)/2)) {
 #' }
 #' @export
 
-dotPlot <- function(object, par, dot_min, width = 10, height = 10, ortho = FALSE) {
+dotPlot <- function(object, par, dot_min, ortho = "none", width = 10, height = 10) {
     if(!file.exists("markers.csv")) {
         stop("Please make sure that markers.csv file exists")
     }
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
-    dir.create(here::here("dotplot"), showWarnings = FALSE)
+    if(!dir.exists(file.path("results", "dotplot"))) {
+        stop("Directory `results/dotplot` must exist")
+}
     markers <- readr::read_csv(here::here("markers.csv")) |>
         as.list(markers) |>
         lapply(function(x) x[!is.na(x)])
@@ -78,21 +101,21 @@ dotPlot <- function(object, par, dot_min, width = 10, height = 10, ortho = FALSE
     }
     if (ortho == "mouse2human") {
         genes <- homologene::mouse2human(genes, db = homologene::homologeneData2)$humanGene
-    }
-    if (ortho == "human2mouse") {
+        message("genes converted from mouse to human")
+    } else if (ortho == "human2mouse") {
         genes <- homologene::human2mouse(genes, db = homologene::homologeneData2)$mouseGene
-    }
-    if (ortho == "none") {
-    genes <- genes
+        message("genes converted from human to mouse")
+    } else if (ortho == "none") {
+        message("no genes werte converted")
     }
     object_parse <- deparse(substitute(object))
-    Seurat::DotPlot(object, features = unique(genes), dot.scale = 10, scale.by = "size", dot.min = dot_min) +
+    dp <- Seurat::DotPlot(object, features = unique(genes), dot.scale = 10, scale.by = "size", dot.min = dot_min) +
         viridis::scale_color_viridis(option = "viridis") +
         scale_size(range=c(0,10))+
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, face = "italic"))+
         xlab(NULL)+
         ylab(NULL)
-    ggsave(here::here("dotplot", glue::glue("dp_{object_parse}_{par}.pdf")), width = width, height = height, limitsize = FALSE)
+    ggsave(file.path("results", "dotplot", glue::glue("dp_{object_parse}_{par}.pdf")), width = width, height = height, limitsize = FALSE)
 }
 
 
@@ -114,12 +137,14 @@ dotPlot <- function(object, par, dot_min, width = 10, height = 10, ortho = FALSE
 #' @param cluster_rows cluster rows? (default: true)
 #' @param cluster_cols cluster columns? (default: true)
 #' @param annotation_row data frame that contains the annotations. Rows in the data and in the annotation are matched using row names. (default: NA)
-#' @return save heatmap to folder `featureplot`
+#' @return save heatmap to folder `/results/heatmap`
 #' @examples \dontrun{pHeatmap(szabo_tc_tc_avg, scale = "row", cluster_cols = FALSE)}
 #' @export
 
 pHeatmap <- function(matrix, scale = "none", height = ceiling(nrow(matrix)/3), width = ceiling(ncol(matrix)/2), cellwidth = 10, cellheight = 10, treeheight_row = 10, treeheight_col = 10, fontsize = 10, cluster_rows = TRUE, cluster_cols = TRUE, annotation_row = NA) {
-    dir.create(here::here("heatmap"), showWarnings = FALSE)
+   if(!dir.exists(file.path("results", "heatmap"))) {
+        stop("Directory `results/heatmap` must exist")
+}
     matrix_parse <- deparse(substitute(matrix))
     matrix <- matrix[!rowSums(matrix) == 0,] # filter rows with only zeros
     break_max <- round(max(abs(c(max(scale_mat(matrix, scale = scale)), min(scale_mat(matrix, scale = scale)))))-0.1,1) #use internal function to get scaled matrix and max value for color legend
@@ -139,7 +164,7 @@ pHeatmap <- function(matrix, scale = "none", height = ceiling(nrow(matrix)/3), w
                                 legend_breaks = seq(break_min, break_max, length = 3),
                                 annotation_row = annotation_row
                                 )
-    pdf(here::here("heatmap", glue::glue("hm_{matrix_parse}.pdf")), width = width, height = height)
+    pdf(file.path("results", "heatmap", glue::glue("hm_{matrix_parse}.pdf")), width = width, height = height)
     print(phmap)
     dev.off()
 }

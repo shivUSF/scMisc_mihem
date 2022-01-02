@@ -4,23 +4,25 @@
 \alias{fPlot}
 \title{nice Seurat feature plot}
 \usage{
-fPlot(object, par, width = 16, height = ceiling(length(genes)/2))
+fPlot(object, par, filepath, width = 16, height = ceiling(length(genes)/2))
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{par}{column name in markers.csv}
 
+\item{filepath}{path of the file}
+
 \item{width}{width of output plot (default: 16)}
 
 \item{height}{height of output plot (default: length of genes divided by two)}
 }
 \value{
-save feature plot to folder \code{featureplot}
+save feature plot to folder \verb{/results/featureplot/}
 }
 \description{
 create and save a nice Seurat feature plot in folder \code{featureplot}
 }
 \examples{
-\dontrun{fPlot(sc_merge, par = "main", width = 5, height = 5)}
+\dontrun{fPlot(sc_merge, par = "main", filepath = file.path("results", "featureplot", glue::glue("fp_")))}
 }

@@ -45,37 +45,27 @@ avgExp <- function(par, object, assay, slot, ortho = "none") {
 }
 
 ################################################################################
-# scale rows from pheatmap
+# find markers presto
 ################################################################################
 
-#' @title scale rows from pheatmap only internal use
-#' @description copied from pheatmap for internal use
-#' @param x matrix input
-#' @return matrix scaled rows
+#' @title wrapper function for presto find markers
+#' @description find significant DE genes using presto
+#' @param ident1 cell population 1
+#' @param ident2 cell population 2, if NULL use all (default: NULL)
+#' @param object Seurat object
+#' @param only_pos only return positive markers? (default: FALSE)
+#' @return data frame with significant DE genes arranged by log2FC
+#' @examples \dontrun{findMarkersPresto(ident1 = "biopsy", ident2 = "blood", object = sc_tc_fil)}
+#' @export 
 
-scale_rows <- function(x) {
-    m <- apply(x, 1, mean, na.rm = T)
-    s <- apply(x, 1, sd, na.rm = T)
-    return((x - m) / s)
-}
-
-
-################################################################################
-# scale mat from pheatmap
-################################################################################
-
-#' @title scale matrix from pheatmap only internal use
-#' @description copied from pheatmap for internal use
-#' @param mat matrix input
-#' @param scale should the values be centered and scaled in row, column direction? Allowed: `row`, `column`, `none`
-#' @return matrix scaled 
-
-scale_mat <- function(mat, scale) {
-    if(!(scale %in% c("none", "row", "column"))) {
-        stop("scale argument shoud take values: 'none', 'row' or 'column'")
+findMarkersPresto <- function(ident1, ident2 = NULL, object, only_pos = FALSE) {
+    if(!methods::is(object) == "Seurat") {
+        stop("Object must be a Seurat object")
     }
-    mat <- switch(scale, none = mat, row = scale_rows(mat), column = t(scale_rows(t(mat))))
-    return(mat)
+    result <- SeuratWrappers::RunPresto(object, ident.1 = ident1, ident.2 = ident2, min.pct = 0.1, logfc.threshold = 0.25, only.pos = only_pos) |>
+    rownames_to_column("gene") |>
+    filter(p_val_adj < 0.05) |>
+    relocate(gene, avg_log2FC, p_val, p_val_adj) |>
+    arrange(desc(avg_log2FC))
+return(result)
 }
-
-

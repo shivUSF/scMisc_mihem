@@ -1,6 +1,6 @@
 Package: scUtils
 Title: Utils for scRNA-seq
-Version: 0.0.9000
+Version: 0.1.0
 Authors@R: 
     person(given = "Michael",
            family = "Heming",
@@ -25,4 +25,9 @@ Imports:
     ggplot2,
     methods,
     pheatmap,
-    homologene
+    homologene,
+    SeuratWrappers,
+    dplyr,
+    tibble,
+    magrittr,
+    clustifyr
