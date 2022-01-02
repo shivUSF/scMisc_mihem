@@ -32,7 +32,7 @@ theme_rect <-function() {
 #' @examples \dontrun{fPlot(sc_merge, par = "main", filepath = file.path("results", "featureplot", glue::glue("fp_")))}
 #' @export
 
-fPlot <- function(object, par, filepath, width = 16, height = ceiling(length(genes)/2)) {
+fPlot <- function(object, par, filepath, width = 16, height = ceiling(3*length(genes_found)/4)) {
     if(!file.exists("markers.csv")) {
         stop("Please make sure that markers.csv file exists")
     }
@@ -49,8 +49,10 @@ fPlot <- function(object, par, filepath, width = 16, height = ceiling(length(gen
     if(is.null(genes)) {
         stop("No genes were found. Make sure that `par` exists in markers.csv")
 }
+    available_genes <- rownames(GetAssayData(sc_merge, slot = "data"))
+    genes_found <- genes[genes %in% available_genes]
     object_parse <- deparse(substitute(object))
-    fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = viridis::viridis(100), reduction = "umap", pt.size = .1, order = TRUE, coord.fixed = TRUE) +
+    fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = "umap", pt.size = .1, order = TRUE, coord.fixed = TRUE, ncol = 4) &
         theme(axis.text = element_blank(),
                        axis.ticks = element_blank(),
                        panel.border = element_rect(color = "black", size = 1, fill = NA))

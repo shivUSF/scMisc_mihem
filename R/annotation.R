@@ -28,6 +28,7 @@
 #'            my_annotations = "cluster",
 #'            ref_object = projectil_til,
 #'            ref_annotations = "functional.cluster",
+#'            format = "seurat",
 #'            ortho = "none",
 #'            height = 25,
 #'            width = 10,
