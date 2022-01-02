@@ -54,15 +54,17 @@ avgExp <- function(par, object, assay, slot, ortho = "none") {
 #' @param ident2 cell population 2, if NULL use all (default: NULL)
 #' @param object Seurat object
 #' @param only_pos only return positive markers? (default: FALSE)
+#' @param min_pct minimum fraction of cells in either two of the populations (default: 0.1)
+#' @param logfc_threshold minimum x-fold difference (default: 0.25)
 #' @return data frame with significant DE genes arranged by log2FC
 #' @examples \dontrun{findMarkersPresto(ident1 = "biopsy", ident2 = "blood", object = sc_tc_fil)}
 #' @export 
 
-findMarkersPresto <- function(ident1, ident2 = NULL, object, only_pos = FALSE) {
+findMarkersPresto <- function(ident1, ident2 = NULL, object, only_pos = FALSE, min_pct = 0.1, logfc_threshold = 0.25) {
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
-    result <- SeuratWrappers::RunPresto(object, ident.1 = ident1, ident.2 = ident2, min.pct = 0.1, logfc.threshold = 0.25, only.pos = only_pos) |>
+    result <- SeuratWrappers::RunPresto(object, ident.1 = ident1, ident.2 = ident2, min.pct = min_pct, logfc.threshold = logfc_threshold, only.pos = only_pos) |>
     rownames_to_column("gene") |>
     filter(p_val_adj < 0.05) |>
     relocate(gene, avg_log2FC, p_val, p_val_adj) |>
