@@ -32,7 +32,7 @@ theme_rect <-function() {
 #' @examples \dontrun{fPlot(sc_merge, par = "main", filepath = file.path("results", "featureplot", glue::glue("fp_")))}
 #' @export
 
-fPlot <- function(object, par, filepath, width = 16, height = ceiling(3*length(genes_found)/4)) {
+fPlot <- function(object, par, filepath, width = 16, height = ceiling(length(genes_found)/4)*3) {
     if(!file.exists("markers.csv")) {
         stop("Please make sure that markers.csv file exists")
     }
