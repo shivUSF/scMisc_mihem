@@ -126,7 +126,7 @@ dotPlot <- function(object, par, dot_min, ortho = "none", width = 10, height = 1
 ################################################################################
 
 #' @title nice pheatmap
-#' @description create and save a nice pheatmap in folder `heatmapplot` using color breakes
+#' @description create and save a nice pheatmap in the folder `heatmap` using color breaks
 #' @param matrix numeric matrix of the values to be plotted
 #' @param scale should the values be centered and scaled in row, column direction? Allowed: `row`, `column`, `none` (default: `none`)
 #' @param width width of output plot (default: number of columns divided by two)
@@ -170,3 +170,60 @@ pHeatmap <- function(matrix, scale = "none", height = ceiling(nrow(matrix)/3), w
     print(phmap)
     dev.off()
 }
+
+################################################################################
+# stackedPlot
+################################################################################
+
+#' @title abundance stacked bar plot
+#' @description create and save an abundance stacked bar plot in the folder `abundance` 
+#' @param object Seurat object
+#' @param x_axis variable in meta data that is used for the y axis
+#' @param y_axis variable in meta data that is used for the x axis
+#' @param x_order vector determining the order of the x axis
+#' @param y_order vector determining the order of the y axis
+#' @param color color palette
+#' @param width width of output plot (default: 10)
+#' @param height height of output plot
+#' @return save heatmap to folder `/results/heatmap`
+#' @examples
+#' \dontrun{
+#' stackedPlot(
+#' object = sc_merge,
+#' x_axis = "pool",
+#' y_axis = "cluster",
+#' x_order = unique(sc_merge$pool),
+#' y_order = cluster_order,
+#' color = col_vector,
+#' width = 4)
+#' }
+#' @export
+
+stackedPlot <- function(object, x_axis, y_axis, x_order, y_order, color, width, height = 10) {
+    if(!methods::is(object) == "Seurat") {
+        stop("Object must be a Seurat object")
+    }
+    if(!dir.exists(file.path("results", "abundance"))) {
+        stop("Directory `results/abundance` must exist")
+}
+    object_parse <- deparse(substitute(object))
+    result_wide <- as.data.frame.matrix(table(object@meta.data[[y_axis]], object@meta.data[[x_axis]])) |>
+        rownames_to_column("cell") |>
+        mutate(across(where(is.numeric), function(x) x/sum(x)*100))
+    result_long <- result_wide |>
+        pivot_longer(!cell, names_to = "type", values_to = "count") |>
+        mutate(cell = factor(cell, levels = y_order)) |>
+        mutate(type = factor(type, levels = x_order)) |>
+        filter(count != 0)
+    sbp <- ggplot(data = result_long)+
+        geom_col(aes(x = type, y = count, fill = cell), color = "black", size = 0.1, position = "fill")+
+        scale_fill_manual(values = color)+
+        guides(fill = guide_legend(title = NULL))+ #remove guide label
+        theme_classic()+ #remove background
+        ylab("Proportion of cells")+
+        xlab("")+
+        theme(axis.text.x=element_text(angle = 90, hjust = 1, vjust = 0.3))
+    ggsave(file.path("results", "abundance", glue::glue("stacked_barplot_{object_parse}_{x_axis}.pdf")), sbp, width = width, height = height)
+    return(sbp)
+}
+

@@ -4,7 +4,13 @@
 \alias{fPlot}
 \title{nice Seurat feature plot}
 \usage{
-fPlot(object, par, filepath, width = 16, height = ceiling(length(genes)/2))
+fPlot(
+  object,
+  par,
+  filepath,
+  width = 16,
+  height = ceiling(length(genes_found)/4) * 3
+)
 }
 \arguments{
 \item{object}{Seurat object}
