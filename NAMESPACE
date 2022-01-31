@@ -2,6 +2,7 @@
 
 export("%>%")
 export(abVolPlot)
+export(abundanceTbl)
 export(avgExp)
 export(clustifyFun)
 export(dotPlot)

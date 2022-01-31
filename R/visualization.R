@@ -14,8 +14,6 @@ theme_rect <-function() {
           aspect.ratio = 1)
 }
 
-
-
 ################################################################################
 # feature plots
 ################################################################################
@@ -41,14 +39,14 @@ fPlot <- function(object, par, filepath, width = 16, height = ceiling(length(gen
     }
     if(!dir.exists(file.path("results", "featureplot"))) {
         stop("Directory `/results/featureplot/` must exist")
-}
+    }
     markers <- readr::read_csv(here::here("markers.csv")) |>
     as.list(markers) |>
     lapply(function(x) x[!is.na(x)])
     genes <- markers[[par]]
     if(is.null(genes)) {
         stop("No genes were found. Make sure that `par` exists in markers.csv")
-}
+    }
     available_genes <- rownames(GetAssayData(sc_merge, slot = "data"))
     genes_found <- genes[genes %in% available_genes]
     object_parse <- deparse(substitute(object))
@@ -242,7 +240,7 @@ stackedPlot <- function(object, x_axis, y_axis, x_order, y_order, color, width, 
 #' @param color color palette
 #' @param width width of output plot (default: 5)
 #' @param height height of output plot (default: 5)
-#' @param threshold remove all clusters that have less than threshold percentage of cells
+#' @param min_cells remove all clusters that have less than minimal amount of cells (default = 10)
 #' @return save volcano abundance plot to folder `/results/abundance`
 #' @examples
 #' \dontrun{
@@ -259,7 +257,7 @@ stackedPlot <- function(object, x_axis, y_axis, x_order, y_order, color, width, 
 #' @export
 
 
-abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, group1, group2, color, width = 5, height = 5, min_pct = 0) {
+abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, group1, group2, color, width = 5, height = 5, min_cells = 10) {
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
@@ -287,13 +285,13 @@ abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
     pvalue_cl <- data.frame(cluster = cluster_order, pvalue = pvalue_res)
 
     cl_size <- as.data.frame.matrix(table(object@meta.data[[cluster_idents]], object@meta.data[[group_by]])) |>
-        rownames_to_column("cluster") |>
+        rownames_to_column("cluster") |> 
+        filter(.data[[group1]] > min_cells & .data[[group2]] > min_cells) |>
         mutate(across(where(is.numeric), function(x) x/sum(x)*100)) |>
-        mutate(logratio = log2(.data[[group1]])/.data[[group2]]) |>
+        mutate(logratio = log2(.data[[group1]]/.data[[group2]])) |>
         left_join(pvalue_cl, by = "cluster") |>
-        mutate(log_pvalue = -log10(pvalue))|>
-        gmutate(cluster = factor(cluster, levels = cluster_order)) |>
-        filter(.data[[group1]] > min_pct | .data[[group2]] > min_pct) |>
+        mutate(log_pvalue = -log10(pvalue)) |>
+        mutate(cluster = factor(cluster, levels = cluster_order))
 
     p1 <- ggplot(cl_size, aes(x = logratio, y = log_pvalue, color = cluster, size = 3, label = cluster))+
         geom_point()+
@@ -309,4 +307,3 @@ abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
         theme(legend.position = "none") #remove guide
     ggsave(file.path("results", "abundance", glue::glue("volcano_plot_{object_parse}_{group1}_{group2}.pdf")), width = width, height = height)
 }
-

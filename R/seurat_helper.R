@@ -71,3 +71,33 @@ findMarkersPresto <- function(ident1, ident2 = NULL, object, only_pos = FALSE, m
     arrange(desc(avg_log2FC))
 return(result)
 }
+
+################################################################################
+# table abundance
+################################################################################
+
+#' @title wrapper function to calculate absolute and relative abundance
+#' @description wrapper function to calculate absolute and relative abundance
+#' @param object Seurat object
+#' @param row_var variable in meta data that will represent the rows
+#' @param col_var variable in meta data that will represent the columns
+#' @examples \dontrun{abundanceTbl(object = aie, row_var = "predicted.id", col_var = "AIE_type")}
+#' @export 
+
+abundanceTbl <- function(object, row_var, col_var) {
+    if(!methods::is(object) == "Seurat") {
+        stop("Object must be a Seurat object")
+    }
+    if(!dir.exists(file.path("results", "abundance"))) {
+        stop("Directory `/results/abundance/` must exist")
+    }
+    object_parse <- deparse(substitute(object))
+    result_abs <- as.data.frame.matrix(table(object@meta.data[[row_var]], object@meta.data[[col_var]])) |>
+        rownames_to_column("cell") 
+
+    result_pct <- result_abs |>
+        mutate(across(where(is.numeric), function(x) x/sum(x)*100)) |>
+        mutate(across(where(is.numeric), function(x) round(x, 2)))
+
+    writexl::write_xlsx(list("absolute" = result_abs, "percentage" = result_pct), file.path("results", "abundance", glue::glue("abundance_tbl_{object_parse}_{col_var}.xlsx")))
+}
