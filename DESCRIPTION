@@ -30,4 +30,5 @@ Imports:
     dplyr,
     tibble,
     magrittr,
-    clustifyr
+    clustifyr,
+    ggrepel

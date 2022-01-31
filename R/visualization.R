@@ -185,7 +185,7 @@ pHeatmap <- function(matrix, scale = "none", height = ceiling(nrow(matrix)/3), w
 #' @param color color palette
 #' @param width width of output plot (default: 10)
 #' @param height height of output plot
-#' @return save heatmap to folder `/results/heatmap`
+#' @return save stacked abundance barplot to folder `/results/abundance`
 #' @examples
 #' \dontrun{
 #' stackedPlot(
@@ -224,6 +224,89 @@ stackedPlot <- function(object, x_axis, y_axis, x_order, y_order, color, width, 
         xlab("")+
         theme(axis.text.x=element_text(angle = 90, hjust = 1, vjust = 0.3))
     ggsave(file.path("results", "abundance", glue::glue("stacked_barplot_{object_parse}_{x_axis}.pdf")), sbp, width = width, height = height)
-    return(sbp)
+}
+
+################################################################################
+# abundance Volcano Plot
+################################################################################
+
+#' @title abundance volcano plot
+#' @description create and save an abundance volcano bar plot in the folder `abundance` 
+#' @param object Seurat object
+#' @param cluster_idents variable in meta data with cluster names
+#' @param sample variable in meta data for each sample
+#' @param cluster_order vector determining the order of the clusters
+#' @param group_by variable in meta data that categorize samples in groups
+#' @param group1 first group (nominator)
+#' @param group2 second group (denominator)
+#' @param color color palette
+#' @param width width of output plot (default: 5)
+#' @param height height of output plot (default: 5)
+#' @param threshold remove all clusters that have less than threshold percentage of cells
+#' @return save volcano abundance plot to folder `/results/abundance`
+#' @examples
+#' \dontrun{
+#' abVolPlot(object = aie_sct,
+#          cluster_idents = "predicted.id",
+#          sample = "sample",
+#          cluster_order = unique(aie_sct$predicted.id),
+#          group_by  = "AIE_type",
+#          group1 = "LGI1",
+#          group2 = "control",
+#          color = dittoColors(), 
+#          min_pct = 0.5)
+#' }
+#' @export
+
+
+abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, group1, group2, color, width = 5, height = 5, min_pct = 0) {
+    if(!methods::is(object) == "Seurat") {
+        stop("Object must be a Seurat object")
+    }
+    if(!dir.exists(file.path("results", "abundance"))) {
+        stop("Directory `results/abundance` must exist")
+}
+
+    object_parse <- deparse(substitute(object))
+
+    cl_size_ind <- as.data.frame.matrix(table(object@meta.data[[cluster_idents]], object@meta.data[[sample]])) |>
+        rownames_to_column("cluster") |>
+        mutate(across(where(is.numeric), function(x) x/sum(x)*100)) |>
+        pivot_longer(!cluster, names_to = "sample", values_to = "count") |>
+        left_join(unique(tibble(sample = object@meta.data[[sample]], group_by = object@meta.data[[group_by]]))) |>
+        dplyr::filter(group_by == group1 | group_by == group2)
+
+    pvalue_res <- vector("double") # define output
+
+    for (i in cluster_order) {
+        out1 <- cl_size_ind[cl_size_ind$cluster == i,]
+        pvalue_res[i] <- wilcox.test(count ~ group_by, data = out1)$p.value
+    }
+
+                                        #wilcox_res <- p.adjust(wilcox_res, "BH")
+    pvalue_cl <- data.frame(cluster = cluster_order, pvalue = pvalue_res)
+
+    cl_size <- as.data.frame.matrix(table(object@meta.data[[cluster_idents]], object@meta.data[[group_by]])) |>
+        rownames_to_column("cluster") |>
+        mutate(across(where(is.numeric), function(x) x/sum(x)*100)) |>
+        mutate(logratio = log2(.data[[group1]])/.data[[group2]]) |>
+        left_join(pvalue_cl, by = "cluster") |>
+        mutate(log_pvalue = -log10(pvalue))|>
+        gmutate(cluster = factor(cluster, levels = cluster_order)) |>
+        filter(.data[[group1]] > min_pct | .data[[group2]] > min_pct) |>
+
+    p1 <- ggplot(cl_size, aes(x = logratio, y = log_pvalue, color = cluster, size = 3, label = cluster))+
+        geom_point()+
+        scale_color_manual(values = color)+
+        theme_classic()+
+                                        #    geom_text(vjust = 0, nudge_y = 0.05)+
+        ggrepel::geom_text_repel(nudge_y = 0.07)+
+        geom_hline(yintercept = -log10(0.05), color = "blue", linetype = "dashed")+ #horizontal line p unadjusted
+        geom_hline(yintercept = -log10(0.05/nrow(cl_size)), color = "blue")+
+        geom_vline(xintercept = 0, color = "red", linetype = "dashed")+ #vertical line
+        xlab(bquote(~Log[2]~ 'fold change'))+
+        ylab(bquote(-Log[10]~ "p value")) +
+        theme(legend.position = "none") #remove guide
+    ggsave(file.path("results", "abundance", glue::glue("volcano_plot_{object_parse}_{group1}_{group2}.pdf")), width = width, height = height)
 }
 
