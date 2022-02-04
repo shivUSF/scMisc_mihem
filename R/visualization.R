@@ -305,5 +305,5 @@ abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
         xlab(bquote(~Log[2]~ 'fold change'))+
         ylab(bquote(-Log[10]~ "p value")) +
         theme(legend.position = "none") #remove guide
-    ggsave(file.path("results", "abundance", glue::glue("volcano_plot_{object_parse}_{group1}_{group2}.pdf")), width = width, height = height)
+    ggsave(file.path("results", "abundance", glue::glue("volcano_plot_{cluster_idents}_{object_parse}_{group1}_{group2}.pdf")), width = width, height = height)
 }
