@@ -286,10 +286,10 @@ abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
     cl_size <- as.data.frame.matrix(table(object@meta.data[[cluster_idents]], object@meta.data[[group_by]])) |>
         rownames_to_column("cluster") |> 
         mutate(cluster = factor(cluster, levels = cluster_order)) |>
-        left_join(pvalue_cl, by = "cluster") |>
         filter(.data[[group1]] > min_cells & .data[[group2]] > min_cells) |>
         mutate(across(where(is.numeric), function(x) x/sum(x)*100)) |>
         mutate(logratio = log2(.data[[group1]]/.data[[group2]])) |>
+        left_join(pvalue_cl, by = "cluster") |>
         mutate(log_pvalue = -log10(pvalue))
       
 
