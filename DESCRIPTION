@@ -1,6 +1,6 @@
 Package: scUtils
 Title: Utils for scRNA-seq
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: 
     person(given = "Michael",
            family = "Heming",
@@ -18,7 +18,6 @@ Suggests:
 Config/testthat/edition: 3
 Imports: 
     Seurat,
-    here,
     readr,
     glue,
     viridis,
@@ -32,4 +31,8 @@ Imports:
     magrittr,
     clustifyr,
     ggrepel,
-    writexl
+    writexl,
+    ggsignif,
+    patchwork,
+    rstatix
+    

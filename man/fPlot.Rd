@@ -4,24 +4,16 @@
 \alias{fPlot}
 \title{nice Seurat feature plot}
 \usage{
-fPlot(
-  object,
-  par,
-  filepath,
-  width = 16,
-  height = ceiling(length(genes_found)/4) * 3
-)
+fPlot(object, par, width = 16, height = ceiling(length(genes_found)/4) * 3)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{par}{column name in markers.csv}
 
-\item{filepath}{path of the file}
-
 \item{width}{width of output plot (default: 16)}
 
-\item{height}{height of output plot (default: length of genes divided by two)}
+\item{height}{height of output plot (default: length of genes divided by four, ceiling, times three)}
 }
 \value{
 save feature plot to folder \verb{/results/featureplot/}

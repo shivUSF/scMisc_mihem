@@ -23,7 +23,7 @@ theme_rect <-function() {
 #' @param object Seurat object
 #' @param par column name in markers.csv
 #' @param width width of output plot (default: 16)
-#' @param height height of output plot (default: length of genes divided by two)
+#' @param height height of output plot (default: length of genes divided by four, ceiling, times three)
 #' @return save feature plot to folder `/results/featureplot/`
 #' @importFrom ggplot2 theme element_blank element_rect ggsave
 #' @examples \dontrun{fPlot(sc_merge, par = "main", filepath = file.path("results", "featureplot", glue::glue("fp_")))}
@@ -39,7 +39,7 @@ fPlot <- function(object, par, width = 16, height = ceiling(length(genes_found)/
     if(!dir.exists(file.path("results", "featureplot"))) {
         stop("Directory `/results/featureplot/` must exist")
     }
-    markers <- readr::read_csv(here::here("markers.csv")) |>
+    markers <- readr::read_csv("markers.csv") |>
     as.list(markers) |>
     lapply(function(x) x[!is.na(x)])
     genes <- markers[[par]]
@@ -87,7 +87,7 @@ dotPlot <- function(object, par, dot_min, ortho = "none", width = 10, height = 1
     if(!dir.exists(file.path("results", "dotplot"))) {
         stop("Directory `results/dotplot` must exist")
 }
-    markers <- readr::read_csv(here::here("markers.csv")) |>
+    markers <- readr::read_csv("markers.csv") |>
         as.list(markers) |>
         lapply(function(x) x[!is.na(x)])
     genes <- markers[[par]]
@@ -299,11 +299,126 @@ abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
         theme_classic()+
                                         #    geom_text(vjust = 0, nudge_y = 0.05)+
         ggrepel::geom_text_repel(nudge_y = 0.07)+
-        geom_hline(yintercept = -log10(0.05), color = "blue", linetype = "dashed")+ #horizontal line p unadjusted
+        geom_hline(yintercept = -log10(0.05), color = "blue", linetgype = "dashed")+ #horizontal line p unadjusted
         geom_hline(yintercept = -log10(0.05/nrow(cl_size)), color = "blue")+
         geom_vline(xintercept = 0, color = "red", linetype = "dashed")+ #vertical line
         xlab(bquote(~Log[2]~ 'fold change'))+
         ylab(bquote(-Log[10]~ "p value")) +
         theme(legend.position = "none") #remove guide
     ggsave(file.path("results", "abundance", glue::glue("volcano_plot_{cluster_idents}_{object_parse}_{group1}_{group2}.pdf")), width = width, height = height)
+}
+
+################################################################################
+# internal helper function to calculcate significance for boxplots
+################################################################################
+
+#' @title significance for boxplot
+#' @description calculcate significance for ggsignif
+#' @param x_var numeric variable (x in the formula `x ~ group`)
+#' @param group grouping variable (group in the formula `x ~ group`)
+#' @param data data frame containing the variables
+#' @return a list for ggsignif input
+#' @examples
+#' \dontrun{compStat(x_var = "pct", group = "type", data = bp_data)}
+
+compStat <- function(x_var, group, data) {
+results <- vector("list")
+f_str <- paste0(x_var, "~", group)
+if(is.character(data[[x_var]])) {
+    stats <- pairwise_fisher_test(table(data[[group]], data[[x_var]]), p.adjust.method = "BH") |>
+        filter(p.adj < 0.05) |>
+        mutate(p.adj.signif = as.character(symnum(p, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
+        results$annotation <- stats$p.adj.signif
+}
+if (is.numeric(data[[x_var]])) {
+if(length(unique(data[[group]])) > 2) {
+    stats <- rstatix::dunn_test(as.formula(f_str), data = data, p.adjust.method = "BH") |>
+        filter(p.adj < 0.05) |>
+        mutate(p.adj.signif = as.character(symnum(p.adj, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
+    results$annotation <- stats$p.adj.signif
+    } else {
+        stats <- rstatix::wilcox_test(as.formula(f_str), data = data) |>
+            filter(p < 0.05) |>
+            mutate(p.signif = as.character(symnum(p, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
+        results$annotation <- stats$p.signif
+    }
+}
+if(nrow(stats) != 0) {
+    for (i in 1:nrow(stats)) {
+        results$comparisons[[i]] <-c(stats$group1[i], stats$group2[i])
+    }
+    return(results)
+} else {
+    results <- list()
+    return(results)
+}
+}
+
+################################################################################
+# abundance boxplot
+################################################################################
+
+#' @title abundance boxplot plot
+#' @description create and save an abundance boxplot in the folder `abundance` 
+#' @param object Seurat object
+#' @param cluster_idents variable in meta data with cluster names
+#' @param sample variable in meta data for each sample
+#' @param cluster_order vector determining the order of the clusters
+#' @param group_by variable in meta data that categorize samples in groups
+#' @param group_order vector determining the order of the samples
+#' @param color color palette
+#' @param width width of output plot (default: 9)
+#' @param height height of output plot (default: length of cluster_idents divided by four, ceiling, times three)
+#' @return save abundance box plot in the folder `/results/abundance`
+#' @examples
+#' \dontrun{
+#'abBoxPlot(object = aie_pbmc,
+#'          cluster_idents = "cluster",
+#'          sample = "sample", 
+#'        cluster_order = cluster_order,
+#'          group_by = "AIE_type",
+#'          group_order = c("control", "CASPR2", "LGI1"),
+#'          color = my_cols)
+#' }
+#' @export
+
+
+abBoxPlot <- function(object, cluster_idents, sample, cluster_order, group_by, group_order, color, width = 9, height = ceiling(length(unique(object@meta.data[[cluster_idents]]))/4)*3) {
+    if(!methods::is(object) == "Seurat") {
+        stop("Object must be a Seurat object")
+    }
+    if(!dir.exists(file.path("results", "abundance"))) {
+        stop("Directory `results/abundance` must exist")
+}
+    object_parse <- deparse(substitute(object))
+    bp_data <-
+        table(object@meta.data[[cluster_idents]], object@meta.data[[sample]]) |>
+        as.data.frame.matrix() |>
+        select(where(function(x) any(x != 0))) |> # filter out columns with only zeros
+        rownames_to_column("cluster") |>
+        mutate(across(where(is.numeric), function(x) x/sum(x)*100)) |>
+        pivot_longer(where(is.numeric), names_to = "sample", values_to = "pct") |>
+        mutate(cluster = factor(cluster, levels = cluster_order)) |>
+        left_join(unique(tibble(sample = object@meta.data[[sample]], type = object@meta.data[[group_by]]))) |>
+        mutate(type = factor(type, levels = group_order)) |>
+        group_split(cluster) |>
+        setNames(cluster_order)
+
+bp_plot <- vector("list")
+stats <- vector("list")
+
+    for (i in seq_along(bp_data)) {
+        stats[[i]] <- compStat(x_var = "pct", group = "type", data = bp_data[[i]])
+        bp_plot[[i]] <- ggplot(bp_data[[i]], aes(x = type, y = pct)) + 
+            ggsignif::geom_signif(comparisons = stats[[i]]$comparisons, annotation = stats[[i]]$annotation, textsize = 5, step_increase = 0.05, vjust = 0.7)+
+            geom_boxplot(aes(fill = type)) + 
+            theme_bw()+
+            ggtitle(names(bp_data)[[i]]) +
+            theme(legend.position = "none")+
+            xlab("") +
+            ylab("percentage")+
+            scale_fill_manual(values = color)
+    }
+patchwork::wrap_plots(bp_plot, ncol = 4)
+ggsave(file.path("results", "abundance", glue::glue("boxplot_{cluster_idents}_{object_parse}.pdf")), width = width, height = height)
 }

@@ -20,7 +20,7 @@ avgExp <- function(par, object, assay, slot, ortho = "none") {
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
-    markers <- readr::read_csv(here::here("markers.csv")) |>
+    markers <- readr::read_csv("markers.csv") |>
     as.list(markers) |>
     lapply(function(x) x[!is.na(x)])
     genes <- markers[[par]]
