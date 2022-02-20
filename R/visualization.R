@@ -422,3 +422,61 @@ stats <- vector("list")
 patchwork::wrap_plots(bp_plot, ncol = 4)
 ggsave(file.path("results", "abundance", glue::glue("boxplot_{cluster_idents}_{object_parse}.pdf")), width = width, height = height)
 }
+
+################################################################################
+# violin/boxplot module plot
+################################################################################
+
+#' @title module plot
+#' @description create combined violin and boxplot of the module score
+#' @param x_var variable in meta data which represents the x-axis
+#' @param module variable in meta data of the module score
+#' @param object Seurat object
+#' @param color color palette
+#' @return plot module plot
+#' @examples
+#' \dontrun{ModulePlot(object = aie_csf, x_var = "AIE_type", module = "TCRVG1", color = my_cols)}
+#' @export
+
+ModulePlot <- function(x_var, module, object, color) {
+data_module <- tibble(x_axis = object@meta.data[[x_var]], module = object@meta.data[[module]])
+signif <- vector("list")
+f_str <- paste0("x_axis" ~ "module")
+if(length(unique(data_module$x_axis)) > 2) {
+    stats <- rstatix::dunn_test(as.formula(f_str), data = data_module, p.adjust.method = "BH") |>
+        filter(p.adj < 0.05) |>
+        mutate(p.adj.signif = as.character(symnum(p.adj, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
+
+    signif$annotation <- stats$p.adj.signif
+} else {
+        stats <- rstatix::wilcox_test(as.formula(f_str), data = data_module) |>
+            filter(p < 0.05) |>
+            mutate(p.signif = as.character(symnum(p, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
+        signif$annotation <- stats$p.signif
+}
+
+if(nrow(stats) != 0) {
+    for (i in 1:nrow(stats)) {
+        signif$comparisons[[i]] <-c(stats$group1[i], stats$group2[i])
+    }
+} else {
+    signif <- list()
+}
+
+module_plot <-
+    ggplot(data_module, aes(x = x_axis, y = module))+
+    geom_violin(aes(fill = x_axis))+
+    geom_boxplot(width = .15)+
+#    stat_summary(fun = mean, geom = "point")+
+    scale_fill_manual(values = color)+
+    theme_bw()+
+    xlab("")+
+    ylab("")+
+    ggtitle(module)+
+    theme(legend.position = "none")
+    ## ggsignif::geom_signif(comparisons = signif$comparisons, 
+    ##                       annotation = signif$annotation, textsize = 5, 
+    ##                       step_increase = 0.05, vjust = 0.7)
+
+return(module_plot)
+}
