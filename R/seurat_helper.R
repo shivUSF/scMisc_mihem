@@ -60,11 +60,11 @@ avgExp <- function(par, object, assay, slot, ortho = "none") {
 #' @examples \dontrun{findMarkersPresto(ident1 = "biopsy", ident2 = "blood", object = sc_tc_fil)}
 #' @export 
 
-findMarkersPresto <- function(ident1, ident2 = NULL, object, only_pos = FALSE, min_pct = 0.1, logfc_threshold = 0.25) {
+findMarkersPresto <- function(ident1, ident2 = NULL, object, only_pos = FALSE, min_pct = 0.1, logfc_threshold = 0.25, assay = assay) {
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
-    result <- SeuratWrappers::RunPresto(object, ident.1 = ident1, ident.2 = ident2, min.pct = min_pct, logfc.threshold = logfc_threshold, only.pos = only_pos) |>
+    result <- SeuratWrappers::RunPresto(object, ident.1 = ident1, ident.2 = ident2, min.pct = min_pct, logfc.threshold = logfc_threshold, only.pos = only_pos, assay = assay) |>
     rownames_to_column("gene") |>
     filter(p_val_adj < 0.05) |>
     relocate(gene, avg_log2FC, p_val, p_val_adj) |>
