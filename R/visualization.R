@@ -299,7 +299,7 @@ abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
         theme_classic()+
                                         #    geom_text(vjust = 0, nudge_y = 0.05)+
         ggrepel::geom_text_repel(nudge_y = 0.07)+
-        geom_hline(yintercept = -log10(0.05), color = "blue", linetgype = "dashed")+ #horizontal line p unadjusted
+        geom_hline(yintercept = -log10(0.05), color = "blue", linetype = "dashed")+ #horizontal line p unadjusted
         geom_hline(yintercept = -log10(0.05/nrow(cl_size)), color = "blue")+
         geom_vline(xintercept = 0, color = "red", linetype = "dashed")+ #vertical line
         xlab(bquote(~Log[2]~ 'fold change'))+
