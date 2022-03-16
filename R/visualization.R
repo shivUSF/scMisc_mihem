@@ -420,7 +420,7 @@ stats <- vector("list")
             scale_fill_manual(values = color)
     }
 patchwork::wrap_plots(bp_plot, ncol = 4)
-ggsave(file.path("results", "abundance", glue::glue("boxplot_{cluster_idents}_{object_parse}.pdf")), width = width, height = height)
+ggsave(file.path("results", "abundance", glue::glue("boxplot_{cluster_idents}_{object_parse}_{group_by}.pdf")), width = width, height = height)
 }
 
 ################################################################################

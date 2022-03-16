@@ -56,6 +56,7 @@ avgExp <- function(par, object, assay, slot, ortho = "none") {
 #' @param only_pos only return positive markers? (default: FALSE)
 #' @param min_pct minimum fraction of cells in either two of the populations (default: 0.1)
 #' @param logfc_threshold minimum x-fold difference (default: 0.25)
+#' @param assay which assay to use in DE testing (e.g. RNA or SCT)
 #' @return data frame with significant DE genes arranged by log2FC
 #' @examples \dontrun{findMarkersPresto(ident1 = "biopsy", ident2 = "blood", object = sc_tc_fil)}
 #' @export 
