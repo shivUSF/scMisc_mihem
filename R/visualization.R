@@ -512,7 +512,7 @@ slingshotPlot <- function(object, lineage) {
               panel.border = element_rect(color = "black", size = 1, fill = NA),
               aspect.ratio = 1)+
         ggtitle(lineage)
-    return(module_plot)
+    return(sds_plot)
 }
 
 
