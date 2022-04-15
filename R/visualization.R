@@ -480,3 +480,39 @@ module_plot <-
 
 return(module_plot)
 }
+
+################################################################################
+# slingshot plot
+################################################################################
+
+#' @title slingshot pseudotime plot
+#' @description create a pseudotime plot based on slingshot pseudotime results
+#' @param object Seurat object
+#' @param lineage lineage in slingshot results 
+#' @return plot slingshot plot
+#' @examples
+#' \dontrun{slingshotPlot(object = sc_mbc_recl, lineage = "Lineage1")}
+#' @export
+
+slingshotPlot <- function(object, lineage) {
+    if(!methods::is(object) == "Seurat") {
+        stop("Object must be a Seurat object")
+    }
+    sds_plot <-
+        Seurat::Embeddings(object, "umap") |>
+        as_tibble() |>
+        mutate(color = pt[,lineage])|>
+        drop_na(color) |>
+        ggplot(aes(x = UMAP_1, y = UMAP_2, color = color)) +
+        geom_point(size = 0.1) +
+        viridis::scale_color_viridis(name = "pseudotime")+
+        theme_classic() +
+        theme(axis.text = element_blank(),
+              axis.ticks = element_blank(),
+              panel.border = element_rect(color = "black", size = 1, fill = NA),
+              aspect.ratio = 1)+
+        ggtitle(lineage)
+    return(module_plot)
+}
+
+
