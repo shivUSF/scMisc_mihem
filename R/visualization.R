@@ -211,7 +211,7 @@ stackedPlot <- function(object, x_axis, y_axis, x_order, y_order, color, width, 
         pivot_longer(!cell, names_to = "type", values_to = "count") |>
         mutate(cell = factor(cell, levels = y_order)) |>
         mutate(type = factor(type, levels = x_order)) |>
-        filter(count != 0)
+        dplyr::filter(count != 0)
     sbp <- ggplot(data = result_long)+
         geom_col(aes(x = type, y = count, fill = cell), color = "black", size = 0.1, position = "fill")+
         scale_fill_manual(values = color)+
@@ -240,6 +240,7 @@ stackedPlot <- function(object, x_axis, y_axis, x_order, y_order, color, width, 
 #' @param width width of output plot (default: 5)
 #' @param height height of output plot (default: 5)
 #' @param min_cells remove all clusters that have less than minimal amount of cells (default = 10)
+#' @param paired logical indicating whether you want a paired test (default FALSE)
 #' @return save volcano abundance plot to folder `/results/abundance`
 #' @examples
 #' \dontrun{
@@ -256,7 +257,7 @@ stackedPlot <- function(object, x_axis, y_axis, x_order, y_order, color, width, 
 #' @export
 
 
-abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, group1, group2, color, width = 5, height = 5, min_cells = 10) {
+abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, group1, group2, color, width = 5, height = 5, min_cells = 10, paired = FALSE) {
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
@@ -277,7 +278,7 @@ abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
 
     for (i in cluster_order) {
         out1 <- cl_size_ind[cl_size_ind$cluster == i,]
-        pvalue_res[i] <- wilcox.test(count ~ group_by, data = out1)$p.value
+        pvalue_res[i] <- wilcox.test(count ~ group_by, data = out1, paired = paired)$p.value
     }
 
                                         #wilcox_res <- p.adjust(wilcox_res, "BH")
@@ -286,7 +287,7 @@ abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
     cl_size <- as.data.frame.matrix(table(object@meta.data[[cluster_idents]], object@meta.data[[group_by]])) |>
         rownames_to_column("cluster") |> 
         mutate(cluster = factor(cluster, levels = cluster_order)) |>
-        filter(.data[[group1]] > min_cells & .data[[group2]] > min_cells) |>
+        dplyr::filter(.data[[group1]] > min_cells & .data[[group2]] > min_cells) |>
         mutate(across(where(is.numeric), function(x) x/sum(x)*100)) |>
         mutate(logratio = log2(.data[[group1]]/.data[[group2]])) |>
         left_join(pvalue_cl, by = "cluster") |>
@@ -321,24 +322,24 @@ abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
 #' @examples
 #' \dontrun{compStat(x_var = "pct", group = "type", data = bp_data)}
 
-compStat <- function(x_var, group, data) {
+compStat <- function(x_var, group, data, paired) {
 results <- vector("list")
 f_str <- paste0(x_var, "~", group)
 if(is.character(data[[x_var]])) {
     stats <- pairwise_fisher_test(table(data[[group]], data[[x_var]]), p.adjust.method = "BH") |>
-        filter(p.adj < 0.05) |>
+        dplyr::filter(p.adj < 0.05) |>
         mutate(p.adj.signif = as.character(symnum(p, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
         results$annotation <- stats$p.adj.signif
 }
 if (is.numeric(data[[x_var]])) {
 if(length(unique(data[[group]])) > 2) {
     stats <- rstatix::dunn_test(as.formula(f_str), data = data, p.adjust.method = "BH") |>
-        filter(p.adj < 0.05) |>
+        dplyr::filter(p.adj < 0.05) |>
         mutate(p.adj.signif = as.character(symnum(p.adj, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
     results$annotation <- stats$p.adj.signif
     } else {
-        stats <- rstatix::wilcox_test(as.formula(f_str), data = data) |>
-            filter(p < 0.05) |>
+        stats <- rstatix::wilcox_test(as.formula(f_str), data = data, paired = paired) |>
+            dplyr::filter(p < 0.05) |>
             mutate(p.signif = as.character(symnum(p, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
         results$annotation <- stats$p.signif
     }
@@ -369,6 +370,7 @@ if(nrow(stats) != 0) {
 #' @param color color palette
 #' @param width width of output plot (default: 9)
 #' @param height height of output plot (default: length of cluster_idents divided by four, ceiling, times three)
+#' @param paired logical indicating whether you want a paired test (default FALSE)
 #' @return save abundance box plot in the folder `/results/abundance`
 #' @examples
 #' \dontrun{
@@ -383,7 +385,7 @@ if(nrow(stats) != 0) {
 #' @export
 
 
-abBoxPlot <- function(object, cluster_idents, sample, cluster_order, group_by, group_order, color, width = 9, height = ceiling(length(unique(object@meta.data[[cluster_idents]]))/4)*3) {
+abBoxPlot <- function(object, cluster_idents, sample, cluster_order, group_by, group_order, color, width = 9, height = ceiling(length(unique(object@meta.data[[cluster_idents]]))/4)*3, paired = FALSE) {
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
@@ -408,7 +410,7 @@ bp_plot <- vector("list")
 stats <- vector("list")
 
     for (i in seq_along(bp_data)) {
-        stats[[i]] <- compStat(x_var = "pct", group = "type", data = bp_data[[i]])
+        stats[[i]] <- compStat(x_var = "pct", group = "type", data = bp_data[[i]], paired = paired)
         bp_plot[[i]] <- ggplot(bp_data[[i]], aes(x = type, y = pct)) + 
             ggsignif::geom_signif(comparisons = stats[[i]]$comparisons, annotation = stats[[i]]$annotation, textsize = 5, step_increase = 0.05, vjust = 0.7)+
             geom_boxplot(aes(fill = type)) + 
@@ -444,13 +446,13 @@ signif <- vector("list")
 f_str <- paste0("x_axis" ~ "module")
 if(length(unique(data_module$x_axis)) > 2) {
     stats <- rstatix::dunn_test(as.formula(f_str), data = data_module, p.adjust.method = "BH") |>
-        filter(p.adj < 0.05) |>
+        dplyr::filter(p.adj < 0.05) |>
         mutate(p.adj.signif = as.character(symnum(p.adj, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
 
     signif$annotation <- stats$p.adj.signif
 } else {
         stats <- rstatix::wilcox_test(as.formula(f_str), data = data_module) |>
-            filter(p < 0.05) |>
+            dpylr::filter(p < 0.05) |>
             mutate(p.signif = as.character(symnum(p, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
         signif$annotation <- stats$p.signif
 }
