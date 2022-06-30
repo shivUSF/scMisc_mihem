@@ -58,18 +58,21 @@ avgExp <- function(par, object, assay, slot, ortho = "none") {
 #' @param logfc_threshold minimum x-fold difference (default: 0.25)
 #' @param assay which assay to use in DE testing (e.g. RNA or SCT)
 #' @return data frame with significant DE genes arranged by log2FC
-#' @examples \dontrun{findMarkersPresto(ident1 = "biopsy", ident2 = "blood", object = sc_tc_fil)}
+#' @examples \dontrun{findMarkersPresto(ident1 = "biopsy", ident2 = "blood", object = sc_tc_fil, assay = "RNA")}
 #' @export 
 
 findMarkersPresto <- function(ident1, ident2 = NULL, object, only_pos = FALSE, min_pct = 0.1, logfc_threshold = 0.25, assay = assay) {
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
+    if(is.null(assay)) {
+    stop("Please provie assay information")
+    }
     result <- SeuratWrappers::RunPresto(object, ident.1 = ident1, ident.2 = ident2, min.pct = min_pct, logfc.threshold = logfc_threshold, only.pos = only_pos, assay = assay) |>
-    rownames_to_column("gene") |>
-    filter(p_val_adj < 0.05) |>
-    relocate(gene, avg_log2FC, p_val, p_val_adj) |>
-    arrange(desc(avg_log2FC))
+    tibble::rownames_to_column("gene") |>
+    dplyr::filter(p_val_adj < 0.05) |>
+    dplyr::relocate(gene, avg_log2FC, p_val, p_val_adj) |>
+    dplyr::arrange(desc(avg_log2FC))
 return(result)
 }
 
