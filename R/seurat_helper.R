@@ -105,3 +105,42 @@ abundanceTbl <- function(object, row_var, col_var) {
 
     writexl::write_xlsx(list("absolute" = result_abs, "percentage" = result_pct), file.path("results", "abundance", glue::glue("abundance_tbl_{object_parse}_{col_var}.xlsx")))
 }
+
+################################################################################
+# enrichr
+################################################################################
+#' @title enrichment analysis
+#' @description wrapper function to perform enrichment analysis with enrichr and save results
+#' @param filename name of deg file file without extension
+#' @param dbs name of the enrichr libraries
+#' @param fc_thresh log fc threshold (default 1)
+#' @param p_thresh p value threshold (default 0.001)
+#' @param sheet sheet name in excel file
+#' @param remove_rp_mt remove ribosomal and mitochondrial genes? (boolean value)
+#' @return save enrichrment analysis in excel sheet with multiple sheets in the folder `results/enrichr`
+#' @examples \dontrun{enrichrFun(filename = "de_ALZ_Naive_blood", dbs = dbs, fc_thresh = 1, p_thresh = 0.001, sheet = "pDC", remove_rp_mt = TRUE)}
+#' @export 
+
+enrichrRun <- function(filename, dbs, fc_thresh = 1, p_thresh = 0.001, sheet, remove_rp_mt) {
+   input <- readxl::read_excel(file.path("results", "de", glue::glue("{filename}.xlsx")))
+if (remove_rp_mt == TRUE) {
+    input <- dplyr::filter(input, !grepl(x = gene, pattern = "(MT-)|(^RP)")) 
+}
+   input_pos <- input |>
+       dplyr::filter(avg_log2FC > fc_thresh) |>
+       dplyr::filter(p_val_adj < p_thresh)
+   input_neg <- input |>
+       dplyr::filter(avg_log2FC < fc_thresh) |>
+       dplyr::filter(p_val_adj < p_thresh)
+   input_merge <- list(pos = input_pos, neg = input_neg)
+   result <- list()
+   for (i in names(input_merge)) {
+       result[[i]] <- enrichR::enrichr(input_merge[[i]]$gene, dbs)
+       for (j in seq_along(result[[i]])){
+           result[[i]][[j]][c("Old.Adjusted.P.value", "Old.P.value")] <- NULL
+       }#remove old p value
+       names(result[[i]])[names(result[[i]]) == "TF_Perturbations_Followed_by_Expression"] <- "TF_Pertubations"
+       names(result[[i]])[names(result[[i]]) == "Enrichr_Submissions_TF-Gene_Coocurrence"] <- "Enrichr_Submissions_TF"
+       writexl::write_xlsx(result[[i]], file.path("results", "enrichr", glue::glue("enrichr_{filename}_{i}_{sheet}.xlsx")))
+}
+}

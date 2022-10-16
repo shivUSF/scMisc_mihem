@@ -332,11 +332,19 @@ if(is.character(data[[x_var]])) {
         results$annotation <- stats$p.adj.signif
 }
 if (is.numeric(data[[x_var]])) {
-if(length(unique(data[[group]])) > 2) {
-    stats <- rstatix::dunn_test(as.formula(f_str), data = data, p.adjust.method = "BH") |>
-        dplyr::filter(p.adj < 0.05) |>
-        mutate(p.adj.signif = as.character(symnum(p.adj, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
-    results$annotation <- stats$p.adj.signif
+    if(length(unique(data[[group]])) > 2) {
+        if(paired == FALSE) {
+        stats <- rstatix::dunn_test(as.formula(f_str), data = data, p.adjust.method = "BH") |>
+            dplyr::filter(p.adj < 0.05) |>
+            mutate(p.adj.signif = as.character(symnum(p.adj, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
+        results$annotation <- stats$p.adj.signif
+        }
+        if(paired == TRUE) {
+        stats <- rstatix::wilcox_test(as.formula(f_str), data = data, p.adjust.method = "BH", paired = paired) |>
+            dplyr::filter(p.adj < 0.05) |>
+            mutate(p.adj.signif = as.character(symnum(p.adj, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
+        results$annotation <- stats$p.adj.signif
+}
     } else {
         stats <- rstatix::wilcox_test(as.formula(f_str), data = data, paired = paired) |>
             dplyr::filter(p < 0.05) |>
@@ -452,7 +460,7 @@ if(length(unique(data_module$x_axis)) > 2) {
     signif$annotation <- stats$p.adj.signif
 } else {
         stats <- rstatix::wilcox_test(as.formula(f_str), data = data_module) |>
-            dpylr::filter(p < 0.05) |>
+            dplyr::filter(p < 0.05) |>
             mutate(p.signif = as.character(symnum(p, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
         signif$annotation <- stats$p.signif
 }
@@ -517,4 +525,36 @@ slingshotPlot <- function(object, lineage) {
     return(sds_plot)
 }
 
+################################################################################
+# enrichr plot
+################################################################################
 
+#' @title enrichr plot
+#' @description plot enrichr results in a bar plot
+#' @param filename name of file without extension and without `enrichr_`
+#' @param sheet name of the excel sheet
+#' @param width width of output plot
+#' @param height height of output plot
+#' @return save enrichr plot in the folder `/results/enrichr`
+#' @importFrom ggplot2 ggplot theme labs ggsave aes geom_col theme_classic
+#' @examples
+#' \dontrun{plotEnrichr("de_ALZ_Naive_CSF_neg_pDC", sheet = "GO_Biological_Process_2021", width = 10, height = 5)}
+#' @export
+
+plotEnrichr <- function(filename, sheet, width, height) {
+    dir.create(file.path("results", "enrichr"), showWarnings = FALSE)
+    colors <- scales::hue_pal()(2)
+    color <- ifelse(grepl(x = filename, pattern = "neg"), colors[[1]], colors[[2]])
+    enrichr <- readxl::read_excel(file.path("results", "enrichr", glue::glue("enrichr_{filename}.xlsx")), sheet = sheet) |>
+        dplyr::filter(Adjusted.P.value < 0.05) |>
+        dplyr::slice_min(order_by = Adjusted.P.value, n = 10, with_ties = FALSE) |>
+        tidyr::separate(Overlap, into = c("overlap1", "overlap2")) |>  # separate overlap in two columns
+        dplyr::mutate(overlap = as.numeric(overlap1)/as.numeric(overlap2)) |> # calculcate overlap
+        ggplot(aes(y = reorder(Term, -log10(Adjusted.P.value)), x = -log10(Adjusted.P.value))) +
+        geom_col(fill = color)+
+        labs(x = "-Log10 Adjusted P value",
+             y = "")+
+        theme_classic()+
+        theme(legend.position = "none")
+    ggsave(file.path("results", "enrichr", glue::glue("barplot_enrichr_{filename}_{sheet}.pdf")), width = width, height = height)
+}
