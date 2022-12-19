@@ -36,9 +36,7 @@ fPlot <- function(object, par, width = 16, height = ceiling(length(genes_found)/
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
-    if(!dir.exists(file.path("results", "featureplot"))) {
-        stop("Directory `/results/featureplot/` must exist")
-    }
+    dir.create(file.path("results", "featureplot"), showWarnings = FALSE)
     markers <- readr::read_csv("markers.csv") |>
     as.list(markers) |>
     lapply(function(x) x[!is.na(x)])
@@ -84,9 +82,7 @@ dotPlot <- function(object, par, dot_min, ortho = "none", width = 10, height = 1
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
-    if(!dir.exists(file.path("results", "dotplot"))) {
-        stop("Directory `results/dotplot` must exist")
-}
+    dir.create(file.path("results", "dotplot"), showWarnings = FALSE)
     markers <- readr::read_csv("markers.csv") |>
         as.list(markers) |>
         lapply(function(x) x[!is.na(x)])
@@ -141,9 +137,7 @@ dotPlot <- function(object, par, dot_min, ortho = "none", width = 10, height = 1
 #' @export
 
 pHeatmap <- function(matrix, scale = "none", height = ceiling(nrow(matrix)/3), width = ceiling(ncol(matrix)/2), cellwidth = 10, cellheight = 10, treeheight_row = 10, treeheight_col = 10, fontsize = 10, cluster_rows = TRUE, cluster_cols = TRUE, annotation_row = NA) {
-   if(!dir.exists(file.path("results", "heatmap"))) {
-        stop("Directory `results/heatmap` must exist")
-}
+    dir.create(file.path("results", "heatmap"), showWarnings = FALSE)
     matrix_parse <- deparse(substitute(matrix))
     matrix <- matrix[!rowSums(matrix) == 0,] # filter rows with only zeros
     break_max <- round(max(abs(c(max(scale_mat(matrix, scale = scale)), min(scale_mat(matrix, scale = scale)))))-0.1,1) #use internal function to get scaled matrix and max value for color legend
@@ -200,9 +194,7 @@ stackedPlot <- function(object, x_axis, y_axis, x_order, y_order, color, width, 
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
-    if(!dir.exists(file.path("results", "abundance"))) {
-        stop("Directory `results/abundance` must exist")
-}
+    dir.create(file.path("results", "abundance"), showWarnings = FALSE)
     object_parse <- deparse(substitute(object))
     result_wide <- as.data.frame.matrix(table(object@meta.data[[y_axis]], object@meta.data[[x_axis]])) |>
         rownames_to_column("cell") |>
@@ -261,10 +253,7 @@ abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
-    if(!dir.exists(file.path("results", "abundance"))) {
-        stop("Directory `results/abundance` must exist")
-}
-
+    dir.create(file.path("results", "abundance"), showWarnings = FALSE)
     object_parse <- deparse(substitute(object))
 
     cl_size_ind <- as.data.frame.matrix(table(object@meta.data[[cluster_idents]], object@meta.data[[sample]])) |>
@@ -397,9 +386,7 @@ abBoxPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
-    if(!dir.exists(file.path("results", "abundance"))) {
-        stop("Directory `results/abundance` must exist")
-}
+    dir.create(file.path("results", "abundance"), showWarnings = FALSE)
     object_parse <- deparse(substitute(object))
     bp_data <-
         table(object@meta.data[[cluster_idents]], object@meta.data[[sample]]) |>

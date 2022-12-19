@@ -1,4 +1,4 @@
 library(testthat)
-library(scUtils)
+library(scMisc)
 
-test_check("scUtils")
+test_check("scMisc")

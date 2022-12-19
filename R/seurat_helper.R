@@ -69,11 +69,11 @@ findMarkersPresto <- function(ident1, ident2 = NULL, object, only_pos = FALSE, m
     stop("Please provie assay information")
     }
     result <- SeuratWrappers::RunPresto(object, ident.1 = ident1, ident.2 = ident2, min.pct = min_pct, logfc.threshold = logfc_threshold, only.pos = only_pos, assay = assay) |>
-    tibble::rownames_to_column("gene") |>
-    dplyr::filter(p_val_adj < 0.05) |>
-    dplyr::relocate(gene, avg_log2FC, p_val, p_val_adj) |>
-    dplyr::arrange(desc(avg_log2FC))
-return(result)
+        tibble::rownames_to_column("gene") |>
+        dplyr::filter(p_val_adj < 0.05) |>
+        dplyr::relocate(gene, avg_log2FC, p_val, p_val_adj) |>
+        dplyr::arrange(desc(avg_log2FC))
+    return(result)
 }
 
 ################################################################################
@@ -121,8 +121,8 @@ abundanceTbl <- function(object, row_var, col_var) {
 #' @examples \dontrun{enrichrFun(filename = "de_ALZ_Naive_blood", dbs = dbs, fc_thresh = 1, p_thresh = 0.001, sheet = "pDC", remove_rp_mt = TRUE)}
 #' @export 
 
-enrichrRun <- function(filename, dbs, fc_thresh = 1, p_thresh = 0.001, sheet, remove_rp_mt) {
-   input <- readxl::read_excel(file.path("results", "de", glue::glue("{filename}.xlsx")))
+enrichrRun <- function(sheet, filename, dbs, fc_thresh = 1, p_thresh = 0.001, remove_rp_mt) {
+   input <- readxl::read_excel(file.path("results", "de", glue::glue("{filename}.xlsx")), sheet = sheet)
 if (remove_rp_mt == TRUE) {
     input <- dplyr::filter(input, !grepl(x = gene, pattern = "(MT-)|(^RP)")) 
 }
@@ -130,17 +130,19 @@ if (remove_rp_mt == TRUE) {
        dplyr::filter(avg_log2FC > fc_thresh) |>
        dplyr::filter(p_val_adj < p_thresh)
    input_neg <- input |>
-       dplyr::filter(avg_log2FC < fc_thresh) |>
+       dplyr::filter(avg_log2FC < -fc_thresh) |>
        dplyr::filter(p_val_adj < p_thresh)
    input_merge <- list(pos = input_pos, neg = input_neg)
    result <- list()
    for (i in names(input_merge)) {
-       result[[i]] <- enrichR::enrichr(input_merge[[i]]$gene, dbs)
-       for (j in seq_along(result[[i]])){
-           result[[i]][[j]][c("Old.Adjusted.P.value", "Old.P.value")] <- NULL
-       }#remove old p value
-       names(result[[i]])[names(result[[i]]) == "TF_Perturbations_Followed_by_Expression"] <- "TF_Pertubations"
-       names(result[[i]])[names(result[[i]]) == "Enrichr_Submissions_TF-Gene_Coocurrence"] <- "Enrichr_Submissions_TF"
-       writexl::write_xlsx(result[[i]], file.path("results", "enrichr", glue::glue("enrichr_{filename}_{i}_{sheet}.xlsx")))
-}
+       if(dim(input_merge[[i]])[[1]] != 0) {
+           result[[i]] <- enrichR::enrichr(input_merge[[i]]$gene, dbs)
+           for (j in seq_along(result[[i]])){
+               result[[i]][[j]][c("Old.Adjusted.P.value", "Old.P.value")] <- NULL
+           }#remove old p value
+           names(result[[i]])[names(result[[i]]) == "TF_Perturbations_Followed_by_Expression"] <- "TF_Pertubations"
+           names(result[[i]])[names(result[[i]]) == "Enrichr_Submissions_TF-Gene_Coocurrence"] <- "Enrichr_Submissions_TF"
+           writexl::write_xlsx(result[[i]], file.path("results", "enrichr", glue::glue("enrichr_{filename}_{i}_{sheet}.xlsx")))
+       }
+   }
 }

@@ -1,6 +1,6 @@
-Package: scUtils
+Package: scMisc
 Title: Utils for scRNA-seq
-Version: 0.1.1
+Version: 0.1.3
 Authors@R: 
     person(given = "Michael",
            family = "Heming",
@@ -12,7 +12,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
