@@ -59,6 +59,7 @@ clustifyFun <- function(my_object,
     if(!(ortho %in% c("none", "mouse2human", "human2mouse"))) {
         stop("ortho must take values: `none`, `mouse2human` or `human2mouse`")
         }
+    dir.create(file.path("results", "clustifyr"), showWarnings = FALSE)
     if(format == "sce") {
         ref <- clustifyr::object_ref(
             input = ref_object,               # SCE object
