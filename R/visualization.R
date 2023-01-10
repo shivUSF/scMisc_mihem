@@ -527,7 +527,6 @@ slingshotPlot <- function(object, lineage) {
 #' @examples
 #' \dontrun{plotEnrichr("de_ALZ_Naive_CSF_neg_pDC", sheet = "GO_Biological_Process_2021", width = 10, height = 5)}
 #' @export
-
 plotEnrichr <- function(filename, sheet, width, height) {
     dir.create(file.path("results", "enrichr"), showWarnings = FALSE)
     colors <- scales::hue_pal()(2)
@@ -544,4 +543,34 @@ plotEnrichr <- function(filename, sheet, width, height) {
         theme_classic()+
         theme(legend.position = "none")
     ggsave(file.path("results", "enrichr", glue::glue("barplot_enrichr_{filename}_{sheet}.pdf")), width = width, height = height)
+}
+
+################################################################################
+# abundance propeller plot volcano
+################################################################################
+#' @title plot propeller results
+#' @description The function creates a volcano plot of the propeller results and saves the plot in results/abundance folder
+#' @param data A dataframe containing the results from propeller calculation
+#' @param color A vector of colors for the clusters in the plot
+#' @param filename A character representing the file name of the plot
+#' @param width The width of the plot
+#' @param height The height of the plot
+#' @importFrom ggplot2 ggplot theme labs ggsave aes geom_col theme_classic
+#' @examples
+#' \dontrun{plotPropeller(data = pnp_ctrl_csf_sex_age, color = cluster_col, filename = "pnp_ctrl_csf_sex_age")}
+#' @export
+
+plotPropeller <- function(data, color, filename, width = 5, height = 5){
+    dir.create(file.path("results", "abundance"), showWarnings = FALSE)
+    ggplot(data, aes(x = log2ratio, y = FDR_log, color = cluster, size = 3, label = cluster))+
+        geom_point()+
+        scale_color_manual(values = color)+
+        theme_classic()+
+        ggrepel::geom_text_repel(nudge_y = 0.07, max.overlaps = 20 )+
+        geom_hline(yintercept = -log10(0.05), color = "blue", linetype = "dashed")+ #horizontal line p unadjusted
+        geom_vline(xintercept = 0, color = "red", linetype = "dashed")+ #vertical line
+        xlab(bquote(~Log[2]~ 'fold change'))+
+        ylab(bquote(~-Log[10]~ "adjusted p value")) +
+        theme(legend.position = "none") #remove guide
+    ggsave(file.path("results", "abundance", glue::glue("propeller_{filename}.pdf")), width = width, height = height)
 }

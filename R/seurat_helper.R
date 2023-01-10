@@ -66,7 +66,7 @@ findMarkersPresto <- function(ident1, ident2 = NULL, object, only_pos = FALSE, m
         stop("Object must be a Seurat object")
     }
     if(is.null(assay)) {
-    stop("Please provie assay information")
+    stop("Please provide assay information")
     }
     result <- SeuratWrappers::RunPresto(object, ident.1 = ident1, ident.2 = ident2, min.pct = min_pct, logfc.threshold = logfc_threshold, only.pos = only_pos, assay = assay) |>
         tibble::rownames_to_column("gene") |>
@@ -145,4 +145,78 @@ if (remove_rp_mt == TRUE) {
            writexl::write_xlsx(result[[i]], file.path("results", "enrichr", glue::glue("enrichr_{filename}_{i}_{sheet}.xlsx")))
        }
    }
+}
+
+
+################################################################################
+# propeller
+################################################################################
+#' @title DA with propeller
+#' @description The function calculates differential cell abundance the transformed proportions and performs a t-test based on a given design matrix
+#' @param seu_obj1 A seurat object
+#' @param condition1 A character representing the first condition
+#' @param condition2 A character representing the second condition
+#' @param cluster_col A character representing the name of the column which contains cluster information
+#' @param meta_col A character representing the name of the column which contains meta information
+#' @param lookup A dataframe that contains patient information
+#' @param patient_col A character representing the name of the column in seu_obj1 which contains patient information
+#' @param lookup_col A character representing the name of the column in the lookup dataframe that should be used for the design matrix
+#' @param min_cells A numeric value indicating the minimum number of cells in a cluster that should be included in the analysis
+#' @param sex_age A logical value indicating whether sex and age should be included in the design matrix
+#' @return A dataframe containing the results of the t-test
+
+#' @examples \dontrun{pnp_ctrl_csf_sex_age <- propellerCalc(seu_obj1 = sc_final,
+#'                                      condition1 = "CSF_PNP",
+#'                                      condition2 = "CSF_CTRL", 
+#'                                      cluster_col = "cluster",
+#'                                      meta_col = "tissue_level1",
+#'                                      lookup = propeller_lookup,
+#'                                      patient_col = "patient",
+#'                                      lookup_col = "tissue_level1_CSF",
+#'                                      min_cells = 30,
+#'                                      sex_age = FALSE)
+#'}
+#' @export
+
+
+propellerCalc <- function(seu_obj1, condition1, condition2, cluster_col, meta_col, lookup, patient_col, lookup_col, min_cells = 30, sex_age = FALSE) {
+seu_obj2 <- seu_obj1[,seu_obj1@meta.data[[meta_col]] %in% c(condition1, condition2)]
+
+cl_interest <- 
+    as.data.frame.matrix(table(seu_obj2@meta.data[[cluster_col]], seu_obj2@meta.data[[meta_col]])) |>
+    rownames_to_column("cluster") |> 
+    dplyr::mutate(group_sum = .data[[condition1]] + .data[[condition2]]) |>
+    dplyr::filter(group_sum > min_cells) |>
+    pull(cluster)
+
+
+props <- speckle::getTransformedProps(seu_obj2@meta.data[[cluster_col]], seu_obj2@meta.data[[patient_col]], transform="logit")
+
+meta_lookup <- 
+    tibble::tibble(patient = colnames(props$TransformedProps)) |>
+    dplyr::left_join(lookup, by = "patient") |>
+    dplyr::distinct(patient, .keep_all = TRUE)
+
+if (sex_age == TRUE) {
+    my_formula <- paste0("~0 + ", lookup_col, "+ sex + age")
+} else {
+my_formula <- paste0("~0 + ", lookup_col)
+}
+
+my_design <- model.matrix(as.formula(my_formula), data = meta_lookup)
+
+condition1_one <- stringr::str_remove(condition1, "_")
+condition2_one <- stringr::str_remove(condition2, "_")
+my_contrasts <- glue::glue("{meta_col}_{condition1_one}-{meta_col}_{condition2_one}")
+my_args <- list(my_contrasts, levels = my_design)
+my_contr <- do.call(makeContrasts, my_args)
+
+propeller_result <- 
+    speckle::propeller.ttest(prop.list = props, design = my_design, contrast = my_contr, robust = TRUE, trend = FALSE, sort= TRUE) |>
+    tibble::rownames_to_column("cluster") |>
+    dplyr::filter(cluster %in% cl_interest) |>
+    dplyr::mutate(log2ratio = log2(PropRatio)) |>
+    dplyr::mutate(FDR_log = -log10(FDR)) |>
+    tibble::tibble()
+return(propeller_result)
 }
