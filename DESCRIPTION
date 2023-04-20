@@ -40,4 +40,5 @@ Imports:
     tidyr,
     enrichR,
     speckle,
-    stringr
+    stringr,
+    RColorBrewer

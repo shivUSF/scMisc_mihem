@@ -307,49 +307,43 @@ abVolPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
 #' @param x_var numeric variable (x in the formula `x ~ group`)
 #' @param group grouping variable (group in the formula `x ~ group`)
 #' @param data data frame containing the variables
-#' @return a list for ggsignif input
+#' @param paired logical value. Do you want to do perform pair testing?
+#' @return data frame with adjusted signficance values
 #' @examples
 #' \dontrun{compStat(x_var = "pct", group = "type", data = bp_data)}
 
 compStat <- function(x_var, group, data, paired) {
-results <- vector("list")
-f_str <- paste0(x_var, "~", group)
-if(is.character(data[[x_var]])) {
-    stats <- pairwise_fisher_test(table(data[[group]], data[[x_var]]), p.adjust.method = "BH") |>
-        dplyr::filter(p.adj < 0.05) |>
-        mutate(p.adj.signif = as.character(symnum(p, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
-        results$annotation <- stats$p.adj.signif
-}
-if (is.numeric(data[[x_var]])) {
-    if(length(unique(data[[group]])) > 2) {
-        if(paired == FALSE) {
-        stats <- rstatix::dunn_test(as.formula(f_str), data = data, p.adjust.method = "BH") |>
-            dplyr::filter(p.adj < 0.05) |>
-            mutate(p.adj.signif = as.character(symnum(p.adj, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
-        results$annotation <- stats$p.adj.signif
-        }
-        if(paired == TRUE) {
-        stats <- rstatix::wilcox_test(as.formula(f_str), data = data, p.adjust.method = "BH", paired = paired) |>
-            dplyr::filter(p.adj < 0.05) |>
-            mutate(p.adj.signif = as.character(symnum(p.adj, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
-        results$annotation <- stats$p.adj.signif
-}
+# initalize stats
+  stats <- vector("list")
+
+  # for character run pairwise fisher test for all parameters, only keep important columns so they match
+  for (par in x_var) {
+    f_str <- paste0(par, "~", group)
+    if (length(unique(data[[par]])) > 2) {
+      if(paired == FALSE) {
+        stats[[par]] <- rstatix::dunn_test(as.formula(f_str), data = data, p.adjust.method = "none") |>
+          dplyr::select(.y., group1, group2, p, p.adj, p.adj.signif)
+      }
+      if (paired == TRUE) {
+        stats[[par]] <- rstatix::wilcox_test(as.formula(f_str), data = data, p.adjust.method = "none", paired = paired) |>
+          dplyr::select(.y., group1, group2, p) |>
+          dplyr::mutate(p.adj = NA,
+                        p.adj.signif = NA)
+      }
     } else {
-        stats <- rstatix::wilcox_test(as.formula(f_str), data = data, paired = paired) |>
-            dplyr::filter(p < 0.05) |>
-            mutate(p.signif = as.character(symnum(p, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
-        results$annotation <- stats$p.signif
+      stats[[par]] <- rstatix::wilcox_test(as.formula(f_str), data = data, p.adjust.method = "none", paired = paired) |>
+        dplyr::select(.y., group1, group2, p, p.adj, p.adj.signif) |>
+        dplyr::mutate(p.adj = NA,
+                      p.adj.signif = NA)
     }
-}
-if(nrow(stats) != 0) {
-    for (i in 1:nrow(stats)) {
-        results$comparisons[[i]] <-c(stats$group1[i], stats$group2[i])
-    }
-    return(results)
-} else {
-    results <- list()
-    return(results)
-}
+  }
+  # combine these lists into a dataframe, do p value adjustment with BH, and then extract only significant values
+  stats_df <-
+    do.call(rbind, stats) |>
+    dplyr::mutate(p.adj = p.adjust(p, method = "BH")) |>
+    dplyr::filter(p.adj < 0.05) |>
+    dplyr::mutate(p.adj.signif = as.character(symnum(p.adj, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", " "))))
+  return(stats_df)
 }
 
 ################################################################################
@@ -357,7 +351,7 @@ if(nrow(stats) != 0) {
 ################################################################################
 
 #' @title abundance boxplot plot
-#' @description create and save an abundance boxplot in the folder `abundance` 
+#' @description create and save an abundance boxplot in the folder `abundance`
 #' @param object Seurat object
 #' @param cluster_idents variable in meta data with cluster names
 #' @param sample variable in meta data for each sample
@@ -373,7 +367,7 @@ if(nrow(stats) != 0) {
 #' \dontrun{
 #'abBoxPlot(object = aie_pbmc,
 #'          cluster_idents = "cluster",
-#'          sample = "sample", 
+#'          sample = "sample",
 #'        cluster_order = cluster_order,
 #'          group_by = "AIE_type",
 #'          group_order = c("control", "CASPR2", "LGI1"),
@@ -382,42 +376,59 @@ if(nrow(stats) != 0) {
 #' @export
 
 
-abBoxPlot <- function(object, cluster_idents, sample, cluster_order, group_by, group_order, color, width = 9, height = ceiling(length(unique(object@meta.data[[cluster_idents]]))/4)*3, paired = FALSE) {
-    if(!methods::is(object) == "Seurat") {
-        stop("Object must be a Seurat object")
-    }
-    dir.create(file.path("results", "abundance"), showWarnings = FALSE)
-    object_parse <- deparse(substitute(object))
-    bp_data <-
-        table(object@meta.data[[cluster_idents]], object@meta.data[[sample]]) |>
-        as.data.frame.matrix() |>
-        select(where(function(x) any(x != 0))) |> # filter out columns with only zeros
-        rownames_to_column("cluster") |>
-        mutate(across(where(is.numeric), function(x) x/sum(x)*100)) |>
-        pivot_longer(where(is.numeric), names_to = "sample", values_to = "pct") |>
-        mutate(cluster = factor(cluster, levels = cluster_order)) |>
-        left_join(unique(tibble(sample = object@meta.data[[sample]], type = object@meta.data[[group_by]]))) |>
-        mutate(type = factor(type, levels = group_order)) |>
-        group_split(cluster) |>
-        setNames(cluster_order)
+abBoxPlot <- function(object, cluster_idents, sample, cluster_order, group_by, group_order, color, width = 9, height = ceiling(length(unique(object@meta.data[[cluster_idents]]))/4)*3, paired = FALSE, number_of_tests) {
+  if(!methods::is(object) == "Seurat") {
+    stop("Object must be a Seurat object")
+  }
+  dir.create(file.path("results", "abundance"), showWarnings = FALSE)
+  object_parse <- deparse(substitute(object))
+  bp_data <-
+    table(object@meta.data[[cluster_idents]], object@meta.data[[sample]]) |>
+    as.data.frame.matrix() |>
+    dplyr::select(where(function(x) any(x != 0))) |> # filter out columns with only zeros
+    tibble::rownames_to_column("cluster") |>
+    dplyr::mutate(across(where(is.numeric), function(x) x/sum(x)*100)) |>
+    tidyr::pivot_longer(where(is.numeric), names_to = "sample", values_to = "pct") |>
+    dplyr::mutate(cluster = factor(cluster, levels = cluster_order)) |>
+    dplyr::left_join(unique(tibble(sample = object@meta.data[[sample]], type = object@meta.data[[group_by]]))) |>
+    dplyr::mutate(type = factor(type, levels = group_order)) |>
+    tidyr::pivot_wider(names_from = cluster, values_from = pct)
 
-bp_plot <- vector("list")
-stats <- vector("list")
+  ## |>
+  ##   dplyr::group_split(cluster) |>
+  ##   setNames(cluster_order)
 
-    for (i in seq_along(bp_data)) {
-        stats[[i]] <- compStat(x_var = "pct", group = "type", data = bp_data[[i]], paired = paired)
-        bp_plot[[i]] <- ggplot(bp_data[[i]], aes(x = type, y = pct)) + 
-            ggsignif::geom_signif(comparisons = stats[[i]]$comparisons, annotation = stats[[i]]$annotation, textsize = 5, step_increase = 0.05, vjust = 0.7)+
-            geom_boxplot(aes(fill = type)) + 
-            theme_bw()+
-            ggtitle(names(bp_data)[[i]]) +
-            theme(legend.position = "none")+
-            xlab("") +
-            ylab("percentage")+
-            scale_fill_manual(values = color)
+  # calculate stats for all tests and adjust
+  bp_stats <- compStat(x_var = names(bp_data)[-c(1,2)], group = "type", data = bp_data, paired = paired)
+
+  bp_plot <- vector("list")
+
+
+  for (var in names(bp_data)[-c(1,2)]) {
+    #extract stats and data for each plot
+    stats_df <- dplyr::filter(bp_stats, .y. == var)
+    stats_list <- vector("list")
+    if(nrow(stats_df) != 0) {
+      stats_list$annotation <- stats_df$p.adj.signif
+      for (i in 1:nrow(stats_df)) {
+        stats_list$comparisons[[i]] <- c(stats_df$group1[i], stats_df$group2[i])
+      }
     }
-patchwork::wrap_plots(bp_plot, ncol = 4)
-ggsave(file.path("results", "abundance", glue::glue("boxplot_{cluster_idents}_{object_parse}_{group_by}.pdf")), width = width, height = height)
+    # create plot for each variable
+    bp_plot[[var]] <-
+      bp_data |>
+      ggplot(aes(x = type, y = .data[[var]])) +
+      ggsignif::geom_signif(comparisons = stats_list$comparisons, annotation = stats_list$annotation, textsize = 5, step_increase = 0.05, vjust = 0.7)+
+      geom_boxplot(aes(fill = type)) +
+      theme_bw()+
+      ggtitle(var) +
+      theme(legend.position = "none")+
+      xlab("") +
+      ylab("percentage")+
+      scale_fill_manual(values = color)
+  }
+  patchwork::wrap_plots(bp_plot, ncol = 4)
+  ggsave(file.path("results", "abundance", glue::glue("boxplot_{cluster_idents}_{object_parse}_{group_by}.pdf")), width = width, height = height)
 }
 
 ################################################################################
@@ -478,39 +489,6 @@ module_plot <-
 return(module_plot)
 }
 
-################################################################################
-# slingshot plot
-################################################################################
-
-#' @title slingshot pseudotime plot
-#' @description create a pseudotime plot based on slingshot pseudotime results
-#' @param object Seurat object
-#' @param lineage lineage in slingshot results 
-#' @return plot slingshot plot
-#' @examples
-#' \dontrun{slingshotPlot(object = sc_mbc_recl, lineage = "Lineage1")}
-#' @export
-
-slingshotPlot <- function(object, lineage) {
-    if(!methods::is(object) == "Seurat") {
-        stop("Object must be a Seurat object")
-    }
-    sds_plot <-
-        Seurat::Embeddings(object, "umap") |>
-        as_tibble() |>
-        mutate(color = pt[,lineage])|>
-        drop_na(color) |>
-        ggplot(aes(x = UMAP_1, y = UMAP_2, color = color)) +
-        geom_point(size = 0.1) +
-        viridis::scale_color_viridis(name = "pseudotime")+
-        theme_classic() +
-        theme(axis.text = element_blank(),
-              axis.ticks = element_blank(),
-              panel.border = element_rect(color = "black", size = 1, fill = NA),
-              aspect.ratio = 1)+
-        ggtitle(lineage)
-    return(sds_plot)
-}
 
 ################################################################################
 # enrichr plot
@@ -529,8 +507,8 @@ slingshotPlot <- function(object, lineage) {
 #' @export
 plotEnrichr <- function(filename, sheet, width, height) {
     dir.create(file.path("results", "enrichr"), showWarnings = FALSE)
-    colors <- scales::hue_pal()(2)
-    color <- ifelse(grepl(x = filename, pattern = "neg"), colors[[1]], colors[[2]])
+    colors <- RColorBrewer::brewer.pal(5, "Set2")
+    color <- ifelse(grepl(x = filename, pattern = "pos"), colors[[1]], colors[[2]])
     enrichr <- readxl::read_excel(file.path("results", "enrichr", glue::glue("enrichr_{filename}.xlsx")), sheet = sheet) |>
         dplyr::filter(Adjusted.P.value < 0.05) |>
         dplyr::slice_min(order_by = Adjusted.P.value, n = 10, with_ties = FALSE) |>
@@ -573,4 +551,43 @@ plotPropeller <- function(data, color, filename, width = 5, height = 5){
         ylab(bquote(~-Log[10]~ "adjusted p value")) +
         theme(legend.position = "none") #remove guide
     ggsave(file.path("results", "abundance", glue::glue("propeller_{filename}.pdf")), width = width, height = height)
+}
+
+################################################################################
+# slingshot visualization
+################################################################################
+#' @title plot slingshot results
+#' @description The function creates a colored UMAP plot and curves split by lineage
+
+#' @param object A Seurat object
+#' @param lineage A character string indicating the lineage of interest.
+#'
+#' @return A ggplot object.
+#'
+#' @examples
+#' \dontrun{sds_plots_list <- lapply(colnames(pt), slingshotPlot, object = bcells)}
+#' @importFrom ggplot2 aes geom_point geom_path ggtitle theme_classic element_blank element_rect
+#' @export
+
+plotSlingshot <- function(object, lineage) {
+    if(!methods::is(object) == "Seurat") {
+        stop("Object must be a Seurat object")
+    }
+    my_curves <- dplyr::filter(curves, Lineage == lineage)
+sds_plot <-
+    Embeddings(object, "umap") |>
+    tibble::as_tibble() |> 
+    dplyr::mutate(color = pt[,lineage])|>
+    tidyr::drop_na(color) |>
+    ggplot(aes(x = UMAP_1, y = UMAP_2)) +
+    geom_point(aes(color = color), size = 0.1)+
+    geom_path(data = my_curves, aes(group = Lineage))+
+    viridis::scale_color_viridis(name = "pseudotime")+
+    theme_classic() +
+    theme(axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          panel.border = element_rect(color = "black", linewidth = 1, fill = NA),
+          aspect.ratio = 1)+
+    ggtitle(lineage)
+return(sds_plot)
 }
