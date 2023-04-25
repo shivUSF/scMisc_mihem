@@ -15,7 +15,7 @@ theme_rect <-function() {
 }
 
 ################################################################################
-# feature plots
+# feature plots with predefined marker list
 ################################################################################
 
 #' @title nice Seurat feature plot
@@ -54,6 +54,39 @@ fPlot <- function(object, par, width = 16, height = ceiling(length(genes_found)/
 ggsave(filename = file.path("results", "featureplot", glue::glue("fp_{object_parse}_{par}.png")), width = width, height = height, limitsize = FALSE)
 }
 
+
+################################################################################
+# feature plots with custom marker list
+################################################################################
+
+#' @title Seurat feature plot
+#' @description create and save a Seurat feature plot in folder `featureplot`
+#' @param object Seurat object
+#' @param markers a data frame with a column called `cell_source` that represents the cell population and its source and a column `gene`
+#' @param par a character string representing the cell_source to plot
+#' @param width width of output plot (default: 16)
+#' @param height height of output plot (default: length of genes divided by four, ceiling, times three)
+#' @return save feature plot to folder `/results/featureplot/`
+#' @importFrom ggplot2 theme element_blank element_rect ggsave
+#' @examples \dontrun{fPlot(sc_merge, par = "main", filepath = file.path("results", "featureplot", glue::glue("fp_")))}
+#' @export
+
+fPlotCustom <- function(object, markers, par, width = 16, height = ceiling(length(genes_found)/4)*3) {
+  if(!methods::is(object) == "Seurat") {
+    stop("Object must be a Seurat object")
+  }
+  dir.create(file.path("results", "featureplot"), showWarnings = FALSE)
+  genes <- markers[markers$cell_source == par, ]$gene
+  genes <- genes[!is.na(genes)]
+  available_genes <- rownames(GetAssayData(object, slot = "data"))
+  genes_found <- genes[genes %in% available_genes]
+  object_parse <- deparse(substitute(object))
+  fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = "umap", pt.size = .1, order = TRUE, coord.fixed = TRUE, ncol = 4) &
+    theme(axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          panel.border = element_rect(color = "black", size = 1, fill = NA))
+  ggsave(filename = file.path("results", "featureplot", glue::glue("fp_{object_parse}_{par}.png")), width = width, height = height, limitsize = FALSE)
+}
 
 ################################################################################
 # dot plots
@@ -401,6 +434,9 @@ abBoxPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
   # calculate stats for all tests and adjust
   bp_stats <- compStat(x_var = names(bp_data)[-c(1,2)], group = "type", data = bp_data, paired = paired)
 
+  bp_data_plot <- bp_data |>
+    dplyr::mutate(patient = gsub(sample, pattern = "(\\w+)_(\\d+)" , replacement = "\\1" ))
+
   bp_plot <- vector("list")
 
 
@@ -416,10 +452,12 @@ abBoxPlot <- function(object, cluster_idents, sample, cluster_order, group_by, g
     }
     # create plot for each variable
     bp_plot[[var]] <-
-      bp_data |>
+      bp_data_plot |>
       ggplot(aes(x = type, y = .data[[var]])) +
       ggsignif::geom_signif(comparisons = stats_list$comparisons, annotation = stats_list$annotation, textsize = 5, step_increase = 0.05, vjust = 0.7)+
       geom_boxplot(aes(fill = type)) +
+      geom_point() +
+      geom_line(aes(group = patient)) +
       theme_bw()+
       ggtitle(var) +
       theme(legend.position = "none")+
