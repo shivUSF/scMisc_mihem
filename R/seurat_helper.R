@@ -184,7 +184,7 @@ seu_obj2 <- seu_obj1[,seu_obj1@meta.data[[meta_col]] %in% c(condition1, conditio
 
 cl_interest <- 
     as.data.frame.matrix(table(seu_obj2@meta.data[[cluster_col]], seu_obj2@meta.data[[meta_col]])) |>
-    rownames_to_column("cluster") |> 
+    tibble::rownames_to_column("cluster") |>
     dplyr::mutate(group_sum = .data[[condition1]] + .data[[condition2]]) |>
     dplyr::filter(group_sum > min_cells) |>
     pull(cluster)
