@@ -1,6 +1,6 @@
 Package: scMisc
 Title: Utils for scRNA-seq
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: 
     person(given = "Michael",
            family = "Heming",
@@ -40,5 +40,6 @@ Imports:
     tidyr,
     enrichR,
     speckle,
+    limma,
     stringr,
     RColorBrewer

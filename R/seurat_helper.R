@@ -119,12 +119,12 @@ abundanceTbl <- function(object, row_var, col_var) {
 #' @param remove_rp_mt remove ribosomal and mitochondrial genes? (boolean value)
 #' @return save enrichrment analysis in excel sheet with multiple sheets in the folder `results/enrichr`
 #' @examples \dontrun{enrichrFun(filename = "de_ALZ_Naive_blood", dbs = dbs, fc_thresh = 1, p_thresh = 0.001, sheet = "pDC", remove_rp_mt = TRUE)}
-#' @export 
+#' @export
 
 enrichrRun <- function(sheet, filename, dbs, fc_thresh = 1, p_thresh = 0.001, remove_rp_mt) {
    input <- readxl::read_excel(file.path("results", "de", glue::glue("{filename}.xlsx")), sheet = sheet)
 if (remove_rp_mt == TRUE) {
-    input <- dplyr::filter(input, !grepl(x = gene, pattern = "(MT-)|(^RP)")) 
+    input <- dplyr::filter(input, !grepl(x = gene, pattern = "(MT-)|(^RP)"))
 }
    input_pos <- input |>
        dplyr::filter(avg_log2FC > fc_thresh) |>
@@ -157,66 +157,66 @@ if (remove_rp_mt == TRUE) {
 #' @param condition1 A character representing the first condition
 #' @param condition2 A character representing the second condition
 #' @param cluster_col A character representing the name of the column which contains cluster information
-#' @param meta_col A character representing the name of the column which contains meta information
-#' @param lookup A dataframe that contains patient information
-#' @param patient_col A character representing the name of the column in seu_obj1 which contains patient information
-#' @param lookup_col A character representing the name of the column in the lookup dataframe that should be used for the design matrix
+#' @param meta_col A character representing the name of the column which contains meta information, should be in Seurat object and in lookup table
+#' @param lookup A dataframe that contains sample information
+#' @param sample_col A character representing the name of the column in seu_obj1 which contains sample information
+#' @param formula  A linear model that should be used for the design matrix
 #' @param min_cells A numeric value indicating the minimum number of cells in a cluster that should be included in the analysis
-#' @param sex_age A logical value indicating whether sex and age should be included in the design matrix
 #' @return A dataframe containing the results of the t-test
 
-#' @examples \dontrun{pnp_ctrl_csf_sex_age <- propellerCalc(seu_obj1 = sc_final,
+#' @examples \dontrun{pnp_ctrl_csf_sex_age <- propellerCalc(
+#'                                       seu_obj1 = sc_final,
 #'                                      condition1 = "CSF_PNP",
 #'                                      condition2 = "CSF_CTRL", 
 #'                                      cluster_col = "cluster",
 #'                                      meta_col = "tissue_level1",
 #'                                      lookup = propeller_lookup,
-#'                                      patient_col = "patient",
+#'                                      sample_col = "patient",
 #'                                      lookup_col = "tissue_level1_CSF",
-#'                                      min_cells = 30,
-#'                                      sex_age = FALSE)
+#'                                      min_cells = 30)
 #'}
 #' @export
 
 
-propellerCalc <- function(seu_obj1, condition1, condition2, cluster_col, meta_col, lookup, patient_col, lookup_col, min_cells = 30, sex_age = FALSE) {
-seu_obj2 <- seu_obj1[,seu_obj1@meta.data[[meta_col]] %in% c(condition1, condition2)]
+propellerCalc <- function(seu_obj1, condition1, condition2, cluster_col, meta_col, lookup, sample_col, formula, min_cells = 30) {
+  # filter cells of condition1 and condition2
+  seu_obj2 <- seu_obj1[,seu_obj1@meta.data[[meta_col]] %in% c(condition1, condition2)]
 
-cl_interest <- 
+# filter clusters with less than min_cells
+  cl_interest <-
     as.data.frame.matrix(table(seu_obj2@meta.data[[cluster_col]], seu_obj2@meta.data[[meta_col]])) |>
     tibble::rownames_to_column("cluster") |>
     dplyr::mutate(group_sum = .data[[condition1]] + .data[[condition2]]) |>
     dplyr::filter(group_sum > min_cells) |>
     pull(cluster)
 
+  # transform proportions
+  props <- speckle::getTransformedProps(
+    clusters = seu_obj2@meta.data[[cluster_col]],
+    sample = seu_obj2@meta.data[[sample_col]],
+    transform = "logit"
+  )
 
-props <- speckle::getTransformedProps(seu_obj2@meta.data[[cluster_col]], seu_obj2@meta.data[[patient_col]], transform="logit")
+  # create lookup table
+  meta_lookup <-
+    tibble::tibble(
+      !!sample_col := colnames(props$TransformedProps)) |>
+    dplyr::left_join(lookup, by = sample_col) |>
+    dplyr::distinct(.data[[sample_col]], .keep_all = TRUE)
 
-meta_lookup <- 
-    tibble::tibble(patient = colnames(props$TransformedProps)) |>
-    dplyr::left_join(lookup, by = "patient") |>
-    dplyr::distinct(patient, .keep_all = TRUE)
+  my_design <- model.matrix(as.formula(formula), data = meta_lookup)
 
-if (sex_age == TRUE) {
-    my_formula <- paste0("~0 + ", lookup_col, "+ sex + age")
-} else {
-my_formula <- paste0("~0 + ", lookup_col)
-}
+  my_contrasts <- glue::glue("{meta_col}{condition1}-{meta_col}{condition2}")
+  my_args <- list(my_contrasts, levels = my_design)
+  my_contr <- do.call(limma::makeContrasts, my_args)
 
-my_design <- model.matrix(as.formula(my_formula), data = meta_lookup)
-
-condition1_one <- stringr::str_remove(condition1, "_")
-condition2_one <- stringr::str_remove(condition2, "_")
-my_contrasts <- glue::glue("{meta_col}_{condition1_one}-{meta_col}_{condition2_one}")
-my_args <- list(my_contrasts, levels = my_design)
-my_contr <- do.call(makeContrasts, my_args)
-
-propeller_result <- 
+  #calculate propeller t test
+  propeller_result <-
     speckle::propeller.ttest(prop.list = props, design = my_design, contrast = my_contr, robust = TRUE, trend = FALSE, sort= TRUE) |>
     tibble::rownames_to_column("cluster") |>
     dplyr::filter(cluster %in% cl_interest) |>
     dplyr::mutate(log2ratio = log2(PropRatio)) |>
     dplyr::mutate(FDR_log = -log10(FDR)) |>
     tibble::tibble()
-return(propeller_result)
+  return(propeller_result)
 }
