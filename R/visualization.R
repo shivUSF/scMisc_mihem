@@ -572,19 +572,20 @@ plotEnrichr <- function(filename, sheet, width, height) {
 #' @param filename A character representing the file name of the plot
 #' @param width The width of the plot
 #' @param height The height of the plot
+#' @param FDR The FDR threshold for the plot
 #' @importFrom ggplot2 ggplot theme labs ggsave aes geom_col theme_classic
 #' @examples
 #' \dontrun{plotPropeller(data = pnp_ctrl_csf_sex_age, color = cluster_col, filename = "pnp_ctrl_csf_sex_age")}
 #' @export
 
-plotPropeller <- function(data, color, filename, width = 5, height = 5){
+plotPropeller <- function(data, color, filename, width = 5, height = 5, FDR){
     dir.create(file.path("results", "abundance"), showWarnings = FALSE)
     ggplot(data, aes(x = log2ratio, y = FDR_log, color = cluster, size = 3, label = cluster))+
         geom_point()+
         scale_color_manual(values = color)+
         theme_classic()+
         ggrepel::geom_text_repel(nudge_y = 0.07, max.overlaps = 20 )+
-        geom_hline(yintercept = -log10(0.05), color = "blue", linetype = "dashed")+ #horizontal line p unadjusted
+        geom_hline(yintercept = -log10(FDR), color = "blue", linetype = "dashed")+ #horizontal line p unadjusted
         geom_vline(xintercept = -1, color = "red", linetype = "dashed")+ #vertical line
         geom_vline(xintercept = 1, color = "red", linetype = "dashed")+ #vertical line
         xlab(bquote(~Log[2]~ 'fold change'))+
