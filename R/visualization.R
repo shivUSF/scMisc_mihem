@@ -632,3 +632,116 @@ sds_plot <-
     ggtitle(lineage)
 return(sds_plot)
 }
+
+
+################################################################################
+# PCA of cluster abundances
+################################################################################
+#' @title plot PCA of cluster abundances
+#' @description The function creates a PCA plot of the cluster abundances and saves the plot in results/abundance folder
+
+#' @param object A Seurat object
+#' @param cluster A character string indicating the cluster column in the metadata of the Seurat object
+#' @param sample A character string indicating the sample column in the metadata of the Seurat object
+#' @param condition A character string indicating the condition column in the metadata of the Seurat object
+#'
+#' @return A ggplot object.
+#'
+#' @examples
+#' \dontrun{sds_plots_list <- lapply(colnames(pt), slingshotPlot, object = bcells)}
+#' @importFrom ggplot2 aes geom_point geom_path ggtitle theme_classic element_blank element_rect
+#' @export
+
+pcaSeurat <-function(object, cluster, sample, condition) {
+  object_parse <- deparse(substitute(object))
+  cl_size <-
+    as.data.frame.matrix(table(object@meta.data[[cluster]], object@meta.data[[sample]])) |>
+    t()
+
+  colnames(cl_size) <- levels(object@meta.data[[cluster]])
+
+  pca_result <-FactoMineR::PCA(cl_size, scale.unit = TRUE, ncp = 30, graph = FALSE)
+  factoextra::fviz_eig(pca_result, addlabels = TRUE, ylim = c(0,50), ncp = 7)
+  ggsave(paste0("./results/pca/pca_", object_parse, "_", condition, "_eigen.pdf"))
+
+pca_var_plot <-
+  factoextra::fviz_pca_var(
+    pca_result,
+    col.var = "contrib",
+    gradient.cols = viridis::viridis(100),
+    repel = TRUE
+  ) +
+    labs(title = "")+
+    theme_classic()
+  # select.var = list(contrib = 15)) # top 15
+
+  lookup_pre <-
+    data.frame(
+      cluster = object@meta.data[[sample]],
+      condition = object@meta.data[[condition]]
+    ) |>
+    distinct()
+
+  lookup <-
+    data.frame(cluster = rownames(cl_size)) |>
+    left_join(lookup_pre)
+
+factoextra::fviz_pca_ind(pca_result)
+
+  pca_plot_ind <-
+    factoextra::fviz_pca_ind(
+      pca_result,
+      pointsize = 5,
+      pointshape = 21,
+      fill = "#E7B800",
+      col.ind = "black",
+      palette = "Set2",
+      axes.linetype = "solid"
+    )
+
+  pca_ggplot_ind <-
+    ggpubr::ggpar(
+    pca_plot_ind,
+    title = "",
+    xlab = "PC1",
+    ylab = "PC2",
+    ggtheme = theme_bw() +
+      theme(axis.title.x = element_text(size=15),
+            axis.title.y = element_text(size=15),
+            plot.title = element_text(size=25))) +
+    theme_classic() +
+    coord_fixed()
+
+  pca_plot_group <-
+    factoextra::fviz_pca_ind(
+      pca_result,
+      pointsize = 5,
+      pointshape = 21,
+      geom.ind = "point",
+      fill.ind = lookup$condition,
+      col.ind = "black",
+      palette = "Set2",
+      addEllipses = TRUE,
+      ellipse.type = "confidence",
+      legend.title = "group",
+      axes.linetype = "solid"
+    )
+
+  pca_ggplot_group <-
+    ggpubr::ggpar(
+      pca_plot_group,
+      title = "",
+      xlab = "PC1",
+      ylab = "PC2",
+      ggtheme = theme_bw() +
+        theme(axis.title.x = element_text(size=15),
+              axis.title.y = element_text(size=15),
+              plot.title = element_text(size=25))) +
+    theme_classic() +
+    coord_fixed()
+
+  pca_plots <- patchwork::wrap_plots(pca_var_plot, pca_ggplot_ind, pca_ggplot_group, ncol = 3)
+  ggsave(paste0("results", "pca", object_parse, "_", condition,  ".pdf"), width = 18, height = 6,
+         plot = pca_plots)
+
+}
