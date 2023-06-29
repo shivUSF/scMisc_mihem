@@ -658,7 +658,7 @@ return(sds_plot)
 #' @export
 
 pcaSeurat <-function(object, cluster, sample, condition) {
-  dir.create(file.path("results", "featureplot"), showWarnings = FALSE)
+  dir.create(file.path("results", "pca"), showWarnings = FALSE)
   object_parse <- deparse(substitute(object))
   cl_size <-
     as.data.frame.matrix(table(object@meta.data[[cluster]], object@meta.data[[sample]])) |>
