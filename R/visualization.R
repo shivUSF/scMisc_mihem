@@ -745,7 +745,7 @@ factoextra::fviz_pca_ind(pca_result)
     theme_classic() +
     coord_fixed()
 
-  pca_plots <- patchwork::wrap_plots(pca_eigen, pca_var_plot, pca_ggplot_ind, pca_ggplot_group, ncol = 2)
-  ggsave(file.path("results", "pca", paste0(object_parse, "_", condition, "_", cluster, ".pdf")), width = 15, height = 12,
+  pca_plots <- patchwork::wrap_plots(pca_eigen, pca_var_plot, pca_ggplot_ind, pca_ggplot_group, ncol = 4)
+  ggsave(file.path("results", "pca", paste0(object_parse, "_", condition, "_", cluster, ".pdf")), width = 18, height = 6,
          plot = pca_plots)
 }
