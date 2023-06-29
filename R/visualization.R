@@ -644,6 +644,8 @@ return(sds_plot)
 #' @param cluster A character string indicating the cluster column in the metadata of the Seurat object
 #' @param sample A character string indicating the sample column in the metadata of the Seurat object
 #' @param condition A character string indicating the condition column in the metadata of the Seurat object
+#' @param width The width of the plot
+#' @param height The height of the plot
 #'
 #' @return A ggplot object.
 #'
@@ -657,7 +659,7 @@ return(sds_plot)
 #' @importFrom ggplot2 aes geom_point geom_path ggtitle theme_classic element_blank element_rect
 #' @export
 
-pcaSeurat <-function(object, cluster, sample, condition) {
+pcaSeurat <-function(object, cluster, sample, condition, width = 20, height = 5) {
   dir.create(file.path("results", "pca"), showWarnings = FALSE)
   object_parse <- deparse(substitute(object))
   cl_size <-
@@ -746,6 +748,6 @@ factoextra::fviz_pca_ind(pca_result)
     coord_fixed()
 
   pca_plots <- patchwork::wrap_plots(pca_eigen, pca_var_plot, pca_ggplot_ind, pca_ggplot_group, ncol = 4)
-  ggsave(file.path("results", "pca", paste0(object_parse, "_", condition, "_", cluster, ".pdf")), width = 18, height = 6,
+  ggsave(file.path("results", "pca", paste0(object_parse, "_", condition, "_", cluster, ".pdf")), width = width, height = height,
          plot = pca_plots)
 }
