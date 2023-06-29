@@ -716,8 +716,7 @@ factoextra::fviz_pca_ind(pca_result)
       theme(axis.title.x = element_text(size=15),
             axis.title.y = element_text(size=15),
             plot.title = element_text(size=25))) +
-    theme_classic() +
-    coord_fixed()
+    theme_classic()
 
   pca_plot_group <-
     factoextra::fviz_pca_ind(
@@ -744,8 +743,7 @@ factoextra::fviz_pca_ind(pca_result)
         theme(axis.title.x = element_text(size=15),
               axis.title.y = element_text(size=15),
               plot.title = element_text(size=25))) +
-    theme_classic() +
-    coord_fixed()
+    theme_classic()
 
   pca_plots <- patchwork::wrap_plots(pca_eigen, pca_var_plot, pca_ggplot_ind, pca_ggplot_group, ncol = 4)
   ggsave(file.path("results", "pca", paste0(object_parse, "_", condition, "_", cluster, ".pdf")), width = width, height = height,
