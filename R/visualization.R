@@ -648,7 +648,12 @@ return(sds_plot)
 #' @return A ggplot object.
 #'
 #' @examples
-#' \dontrun{sds_plots_list <- lapply(colnames(pt), slingshotPlot, object = bcells)}
+#' \dontrun{
+#' pcaSeurat(
+#'   object = sc_final,
+#'   cluster = "cluster",
+#'   sample = "patient",
+#'   condition = "condition")
 #' @importFrom ggplot2 aes geom_point geom_path ggtitle theme_classic element_blank element_rect
 #' @export
 
