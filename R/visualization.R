@@ -667,8 +667,7 @@ pcaSeurat <-function(object, cluster, sample, condition) {
   colnames(cl_size) <- levels(object@meta.data[[cluster]])
 
   pca_result <-FactoMineR::PCA(cl_size, scale.unit = TRUE, ncp = 30, graph = FALSE)
-  factoextra::fviz_eig(pca_result, addlabels = TRUE, ylim = c(0,50), ncp = 7)
-  ggsave(paste0("./results/pca/pca_", object_parse, "_", condition, "_eigen.pdf"))
+  pca_eigen <- factoextra::fviz_eig(pca_result, addlabels = TRUE, ylim = c(0,50), ncp = 7)
 
 pca_var_plot <-
   factoextra::fviz_pca_var(
@@ -746,8 +745,7 @@ factoextra::fviz_pca_ind(pca_result)
     theme_classic() +
     coord_fixed()
 
-  pca_plots <- patchwork::wrap_plots(pca_var_plot, pca_ggplot_ind, pca_ggplot_group, ncol = 3)
-  ggsave(paste0("results", "pca", object_parse, "_", condition,  ".pdf"), width = 18, height = 6,
+  pca_plots <- patchwork::wrap_plots(pca_eigen, pca_var_plot, pca_ggplot_ind, pca_ggplot_group, ncol = 2)
+  ggsave(paste0("results", "pca", object_parse, "_", condition,  ".pdf"), width = 15, height = 12,
          plot = pca_plots)
-
 }
