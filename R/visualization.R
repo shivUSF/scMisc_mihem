@@ -366,7 +366,7 @@ compStat <- function(x_var, group, data, paired) {
       }
     } else {
       stats[[par]] <- rstatix::wilcox_test(as.formula(f_str), data = data, p.adjust.method = "none", paired = paired) |>
-        dplyr::select(.y., group1, group2, p, p.adj, p.adj.signif) |>
+        dplyr::select(.y., group1, group2, p) |>
         dplyr::mutate(p.adj = NA,
                       p.adj.signif = NA)
     }
