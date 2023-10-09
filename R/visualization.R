@@ -44,7 +44,7 @@ fPlot <- function(object, par, width = 16, height = ceiling(length(genes_found)/
     if(is.null(genes)) {
         stop("No genes were found. Make sure that `par` exists in markers.csv")
     }
-    available_genes <- rownames(GetAssayData(object, slot = "data"))
+    available_genes <- rownames(object)
     genes_found <- genes[genes %in% available_genes]
     object_parse <- deparse(substitute(object))
     fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = "umap", pt.size = .1, order = TRUE, coord.fixed = TRUE, ncol = 4) &
@@ -64,6 +64,7 @@ ggsave(filename = file.path("results", "featureplot", glue::glue("fp_{object_par
 #' @param object Seurat object
 #' @param markers a data frame with a column called `cell_source` that represents the cell population and its source and a column `gene`
 #' @param par a character string representing the cell_source to plot
+#' @param reduction a character string specifying the dimension reduction
 #' @param width width of output plot (default: 16)
 #' @param height height of output plot (default: length of genes divided by four, ceiling, times three)
 #' @return save feature plot to folder `/results/featureplot/`
@@ -71,7 +72,7 @@ ggsave(filename = file.path("results", "featureplot", glue::glue("fp_{object_par
 #' @examples \dontrun{fPlot(sc_merge, par = "main", filepath = file.path("results", "featureplot", glue::glue("fp_")))}
 #' @export
 
-fPlotCustom <- function(object, markers, par, width = 16, height = ceiling(length(genes_found)/4)*3) {
+fPlotCustom <- function(object, markers, par, reduction, width = 16, height = ceiling(length(genes_found)/4)*3) {
   if(!methods::is(object) == "Seurat") {
     stop("Object must be a Seurat object")
   }
@@ -81,7 +82,7 @@ fPlotCustom <- function(object, markers, par, width = 16, height = ceiling(lengt
   available_genes <- rownames(object)
   genes_found <- genes[genes %in% available_genes]
   object_parse <- deparse(substitute(object))
-  fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = "umap", pt.size = .1, order = TRUE, coord.fixed = TRUE, ncol = 4) &
+  fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = reduction, pt.size = .1, order = TRUE, coord.fixed = TRUE, ncol = 4) &
     theme(axis.text = element_blank(),
           axis.ticks = element_blank(),
           panel.border = element_rect(color = "black", size = 1, fill = NA))
