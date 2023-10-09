@@ -78,7 +78,7 @@ fPlotCustom <- function(object, markers, par, width = 16, height = ceiling(lengt
   dir.create(file.path("results", "featureplot"), showWarnings = FALSE)
   genes <- markers[markers$cell_source == par, ]$gene
   genes <- genes[!is.na(genes)]
-  available_genes <- rownames(GetAssayData(object, slot = "data"))
+  available_genes <- rownames(object)
   genes_found <- genes[genes %in% available_genes]
   object_parse <- deparse(substitute(object))
   fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = "umap", pt.size = .1, order = TRUE, coord.fixed = TRUE, ncol = 4) &
@@ -656,6 +656,7 @@ return(sds_plot)
 #'   cluster = "cluster",
 #'   sample = "patient",
 #'   condition = "condition")
+#' }
 #' @importFrom ggplot2 aes geom_point geom_path ggtitle theme_classic element_blank element_rect
 #' @export
 
