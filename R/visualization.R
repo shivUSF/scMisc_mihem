@@ -47,7 +47,7 @@ fPlot <- function(object, par, width = 16, height = ceiling(length(genes_found)/
     available_genes <- rownames(object)
     genes_found <- genes[genes %in% available_genes]
     object_parse <- deparse(substitute(object))
-    fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = "umap", pt.size = .1, order = TRUE, coord.fixed = TRUE, ncol = 4) &
+    fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = "umap", pt.size = .1, order = TRUE, coord.fixed = TRUE, ncol = 4, raster = FALSE) &
         theme(axis.text = element_blank(),
                        axis.ticks = element_blank(),
                        panel.border = element_rect(color = "black", size = 1, fill = NA))
@@ -82,7 +82,7 @@ fPlotCustom <- function(object, markers, par, reduction, width = 16, height = ce
   available_genes <- rownames(object)
   genes_found <- genes[genes %in% available_genes]
   object_parse <- deparse(substitute(object))
-  fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = reduction, pt.size = .1, order = TRUE, coord.fixed = TRUE, ncol = 4) &
+  fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = reduction, pt.size = .1, order = TRUE, coord.fixed = TRUE, ncol = 4, raster = FALSE) &
     theme(axis.text = element_blank(),
           axis.ticks = element_blank(),
           panel.border = element_rect(color = "black", size = 1, fill = NA))
