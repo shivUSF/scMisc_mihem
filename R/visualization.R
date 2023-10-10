@@ -86,8 +86,6 @@ fPlotCustom <- function(object, markers, par, reduction, width = 16, height = ce
     theme(axis.text = element_blank(),
           axis.ticks = element_blank(),
           panel.border = element_rect(color = "black", size = 1, fill = NA))
-  ggsave(filename = file.path("results", "featureplot", glue::glue("fp_{object_parse}_{par}.png")), width = width, height = height, limitsize = FALSE)
-}
 
 ################################################################################
 # dot plots
@@ -95,6 +93,7 @@ fPlotCustom <- function(object, markers, par, reduction, width = 16, height = ce
 
 #' @title nice Seurat dot plot
 #' @description create and save a nice Seurat dot plot
+#' @param path path to markers.csv
 #' @param object Seurat object
 #' @param par column name in markers.csv
 #' @param dot_min minimal dot size
@@ -109,15 +108,12 @@ fPlotCustom <- function(object, markers, par, reduction, width = 16, height = ce
 #' }
 #' @export
 
-dotPlot <- function(object, par, dot_min, ortho = "none", width = 10, height = 10) {
-    if(!file.exists("markers.csv")) {
-        stop("Please make sure that markers.csv file exists")
-    }
+dotPlot <- function(path, object, genes, dot_min, ortho = "none", width = 10, height = 10) {
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
     dir.create(file.path("results", "dotplot"), showWarnings = FALSE)
-    markers <- readr::read_csv("markers.csv") |>
+    markers <- readr::read_csv(path) |>
         as.list(markers) |>
         lapply(function(x) x[!is.na(x)])
     genes <- markers[[par]]
