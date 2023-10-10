@@ -112,7 +112,7 @@ fPlotCustom <- function(object, markers, par, reduction, width = 16, height = ce
 #' }
 #' @export
 
-dotPlot <- function(path, object, genes, dot_min, ortho = "none", width = 10, height = 10) {
+dotPlot <- function(path, object, par, dot_min, ortho = "none", width = 10, height = 10) {
     if(!methods::is(object) == "Seurat") {
         stop("Object must be a Seurat object")
     }
