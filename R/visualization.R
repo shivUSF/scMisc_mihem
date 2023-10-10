@@ -72,8 +72,8 @@ ggsave(filename = file.path("results", "featureplot", glue::glue("fp_{object_par
 #' @examples \dontrun{fPlot(sc_merge, par = "main", filepath = file.path("results", "featureplot", glue::glue("fp_")))}
 #' @export
 
-fPlotCustom <- function(object, markers, par, reduction, width = 16, height = ceiling(length(genes_found)/4)*3) {
-  if(!methods::is(object) == "Seurat") {
+fPlotCustom <- function(object, markers, par, reduction, width = 16, height = ceiling(length(genes_found) / 4) * 3) {
+  if (!methods::is(object) == "Seurat") {
     stop("Object must be a Seurat object")
   }
   dir.create(file.path("results", "featureplot"), showWarnings = FALSE)
@@ -83,9 +83,13 @@ fPlotCustom <- function(object, markers, par, reduction, width = 16, height = ce
   genes_found <- genes[genes %in% available_genes]
   object_parse <- deparse(substitute(object))
   fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = reduction, pt.size = .1, order = FALSE, coord.fixed = TRUE, ncol = 4, raster = FALSE, alpha = 0.2) &
-    theme(axis.text = element_blank(),
-          axis.ticks = element_blank(),
-          panel.border = element_rect(color = "black", size = 1, fill = NA))
+    theme(
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      panel.border = element_rect(color = "black", size = 1, fill = NA)
+    )
+  ggsave(filename = file.path("results", "featureplot", glue::glue("fp_{object_parse}_{par}.png")), width = width, height = height, limitsize = FALSE)
+}
 
 ################################################################################
 # dot plots
