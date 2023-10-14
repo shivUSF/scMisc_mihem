@@ -596,6 +596,34 @@ plotPropeller <- function(data, color, filename, width = 5, height = 5, FDR){
 }
 
 ################################################################################
+# abundance propeller plot barplot
+################################################################################
+#' @title plot propeller results in a barplot
+#' @description The function creates a barplot of the propeller results and saves the plot in results/abundance folder
+#' @param data A dataframe containing the results from propeller calculation
+#' @param color A vector of colors for the clusters in the plot
+#' @param filename A character representing the file name of the plot
+#' @param width The width of the plot
+#' @param height The height of the plot
+#' @importFrom ggplot2 ggplot theme labs ggsave aes geom_col theme_classic
+#' @examples
+#' \dontrun{dotplotPropeller(data = pnp_ctrl_csf_sex_age, color = cluster_col, filename = "pnp_ctrl_csf_sex_age")}
+#' @export
+
+dotplotPropeller <- function(data, color, filename, width = 5, height = 5) {
+  dir.create(file.path("results", "abundance"), showWarnings = FALSE)
+  ggplot(result, aes(x = log2ratio, y = fct_reorder(cluster, log2ratio), color = cluster)) +
+    geom_point(size = 5) +
+    theme_classic() +
+    geom_vline(xintercept = 0, color = "red", linetype = "dashed") + # vertical line
+    scale_color_manual(values = color) +
+    xlab("Log2 fold change") +
+    ylab(NULL) +
+    theme(legend.position = "none") # remove legend
+  ggsave(file.path("results", "abundance", glue::glue("propeller_dotplot_{filename}.pdf")), width = width, height = height)
+}
+
+################################################################################
 # slingshot visualization
 ################################################################################
 #' @title plot slingshot results
