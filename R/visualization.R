@@ -612,7 +612,7 @@ plotPropeller <- function(data, color, filename, width = 5, height = 5, FDR){
 
 dotplotPropeller <- function(data, color, filename, width = 5, height = 5) {
   dir.create(file.path("results", "abundance"), showWarnings = FALSE)
-  ggplot(result, aes(x = log2ratio, y = fct_reorder(cluster, log2ratio), color = cluster)) +
+  ggplot(data, aes(x = log2ratio, y = fct_reorder(cluster, log2ratio), color = cluster)) +
     geom_point(size = 5) +
     theme_classic() +
     geom_vline(xintercept = 0, color = "red", linetype = "dashed") + # vertical line
