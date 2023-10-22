@@ -18,7 +18,7 @@ theme_rect <-function() {
 # feature plots with predefined marker list
 ################################################################################
 
-#' @title nice Seurat feature plot
+#' @title Seurat feature plot
 #' @description create and save a nice Seurat feature plot in folder `featureplot`
 #' @param path path to markers.csv
 #' @param object Seurat object
