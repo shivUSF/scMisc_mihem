@@ -20,6 +20,7 @@ theme_rect <-function() {
 
 #' @title nice Seurat feature plot
 #' @description create and save a nice Seurat feature plot in folder `featureplot`
+#' @param path path to markers.csv
 #' @param object Seurat object
 #' @param par column name in markers.csv
 #' @param width width of output plot (default: 16)
@@ -29,29 +30,28 @@ theme_rect <-function() {
 #' @examples \dontrun{fPlot(sc_merge, par = "main", filepath = file.path("results", "featureplot", glue::glue("fp_")))}
 #' @export
 
-fPlot <- function(object, par, width = 16, height = ceiling(length(genes_found)/4)*3) {
-    if(!file.exists("markers.csv")) {
-        stop("Please make sure that markers.csv file exists")
-    }
-    if(!methods::is(object) == "Seurat") {
-        stop("Object must be a Seurat object")
-    }
-    dir.create(file.path("results", "featureplot"), showWarnings = FALSE)
-    markers <- readr::read_csv("markers.csv") |>
+fPlot <- function(path, object, par, width = 16, height = ceiling(length(genes_found) / 4) * 3) {
+  if (!methods::is(object) == "Seurat") {
+    stop("Object must be a Seurat object")
+  }
+  dir.create(file.path("results", "featureplot"), showWarnings = FALSE)
+  markers <- readr::read_csv(path) |>
     as.list(markers) |>
     lapply(function(x) x[!is.na(x)])
-    genes <- markers[[par]]
-    if(is.null(genes)) {
-        stop("No genes were found. Make sure that `par` exists in markers.csv")
-    }
-    available_genes <- rownames(object)
-    genes_found <- genes[genes %in% available_genes]
-    object_parse <- deparse(substitute(object))
-    fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = "umap", pt.size = .1, order = FALSE, coord.fixed = TRUE, ncol = 4, raster = FALSE, alpha = 0.2) &
-        theme(axis.text = element_blank(),
-                       axis.ticks = element_blank(),
-                       panel.border = element_rect(color = "black", size = 1, fill = NA))
-ggsave(filename = file.path("results", "featureplot", glue::glue("fp_{object_parse}_{par}.png")), width = width, height = height, limitsize = FALSE)
+  genes <- markers[[par]]
+  if (is.null(genes)) {
+    stop("No genes were found. Make sure that `par` exists in markers.csv")
+  }
+  available_genes <- rownames(object)
+  genes_found <- genes[genes %in% available_genes]
+  object_parse <- deparse(substitute(object))
+  fp <- Seurat::FeaturePlot(object = object, features = unique(genes), cols = c("#F0F0F0", "#CB181D"), reduction = "umap", pt.size = .1, order = FALSE, coord.fixed = TRUE, ncol = 4, raster = FALSE, alpha = 0.2) &
+    theme(
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      panel.border = element_rect(color = "black", size = 1, fill = NA)
+    )
+  ggsave(filename = file.path("results", "featureplot", glue::glue("fp_{object_parse}_{par}.png")), width = width, height = height, limitsize = FALSE)
 }
 
 

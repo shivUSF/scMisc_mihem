@@ -4,9 +4,17 @@
 \alias{fPlot}
 \title{nice Seurat feature plot}
 \usage{
-fPlot(object, par, width = 16, height = ceiling(length(genes_found)/4) * 3)
+fPlot(
+  path,
+  object,
+  par,
+  width = 16,
+  height = ceiling(length(genes_found)/4) * 3
+)
 }
 \arguments{
+\item{path}{path to markers.csv}
+
 \item{object}{Seurat object}
 
 \item{par}{column name in markers.csv}
