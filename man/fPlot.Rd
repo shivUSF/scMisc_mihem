@@ -8,6 +8,7 @@ fPlot(
   path,
   object,
   par,
+  reduction,
   width = 16,
   height = ceiling(length(genes_found)/4) * 3
 )
@@ -19,6 +20,8 @@ fPlot(
 
 \item{par}{column name in markers.csv}
 
+\item{reduction}{a character string specifying the dimension reduction}
+
 \item{width}{width of output plot (default: 16)}
 
 \item{height}{height of output plot (default: length of genes divided by four, ceiling, times three)}
@@ -28,7 +31,4 @@ save feature plot to folder \verb{/results/featureplot/}
 }
 \description{
 create and save a nice Seurat feature plot in folder \code{featureplot}
-}
-\examples{
-\dontrun{fPlot(sc_merge, par = "main", filepath = file.path("results", "featureplot", glue::glue("fp_")))}
 }
